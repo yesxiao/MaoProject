@@ -6,4 +6,6 @@ mainEnPassage.py 完形填空
 
 mainHistory.py  历史
 
-mainComprehension.py 理解题a
+mainComprehension.py 理解题
+
+输入目录直接在  说明.txt中修改

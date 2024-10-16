@@ -9,6 +9,8 @@ from docx.shared import Inches
 # from xlutils.copy import copy
 import xlwt as xlwt
 
+from Tools import getImportPath
+
 
 class QuestionData:
     id = 0
@@ -80,7 +82,7 @@ def main():
     if len(sys.argv) > 1:
         fileName = sys.argv[1]
     else:
-        fileName = r"D:\猫猫\0905\【填空】初中谓语动词1900题"
+        fileName = getImportPath()
     if not fileName.endswith(".docx"): # 文件夹
         for path in os.listdir(fileName):
             if path.startswith("~"):

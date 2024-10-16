@@ -53,7 +53,7 @@ def main():
     if len(sys.argv) > 1:
         fileName = sys.argv[1]
     else:
-        fileName = "files/宋元400题目.docx"
+        fileName = getImportPath()
     doc = getDoc(fileName)
     global questionRule
     global answerRole

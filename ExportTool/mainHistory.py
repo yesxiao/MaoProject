@@ -9,6 +9,8 @@ import re
 # from xlutils.copy import copy
 import xlwt as xlwt
 
+from Tools import getImportPath
+
 
 class QuestionData:
     id = 0
@@ -85,7 +87,7 @@ def main():
     if len(sys.argv) > 1:
         fileName = sys.argv[1]
     else:
-        fileName = r"D:\猫猫\0905\历史\06科技文化与社会生活\【选择题】新中国教育_文艺_卫生与体育事业的发展（1）1~100_新中国教育_文艺_卫生与体育事业的发展（1）1~100_选择题.docx"
+        fileName = getImportPath()
     if not fileName.endswith(".docx"): # 文件夹
         for path in os.listdir(fileName):
             if path.endswith(".docx"):

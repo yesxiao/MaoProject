@@ -13,7 +13,7 @@ from enum import Enum
 from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
 
-from Tools import getNumPairs
+from Tools import getNumPairs, getImportPath
 
 
 class State(Enum):
@@ -175,7 +175,7 @@ def main():
     if len(sys.argv) > 1:
         fileName = sys.argv[1]
     else:
-        fileName = r"D:\猫猫\0905\地理\中国地理\07\【改7】【答案】【选择题】中国地理：西双版纳（1）1~100（题完）_中国地理：西双版纳（1）1~100（题完）_理解题.docx"
+        fileName = getImportPath()
     if not fileName.endswith(".docx"): # 文件夹
         for path in os.listdir(fileName):
             if path.endswith(".docx"):
@@ -214,8 +214,8 @@ def HandleFile(fileName:str):
     global questionRule
     global optionROle
     # global  curState
-    questionRule = re.compile("^\d+\s*\.\s*")
-    optionROle = re.compile("^[A-Z]\s*\.\s*")
+    questionRule = re.compile(r"^\d+\s*\.\s*")
+    optionROle = re.compile(r"^[A-Z]\s*\.\s*")
     for d in doc.paragraphs:
         formatUnderline(d)
         str = d.text.replace("．", ".")

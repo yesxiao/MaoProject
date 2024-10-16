@@ -1,4 +1,5 @@
 # coding=UTF-8
+import os
 import sys
 import docx
 import re
@@ -6,6 +7,8 @@ import re
 # import xlwt
 # from xlutils.copy import copy
 import xlwt as xlwt
+
+from Tools import getImportPath
 
 
 class QuestionData:
@@ -54,7 +57,7 @@ def main():
     if len(sys.argv) > 1:
         fileName = sys.argv[1]
     else:
-        fileName = "files/14-高中英语-14综合语法填空"
+        fileName = getImportPath()
     if not fileName.endswith(".docx"): # 文件夹
         for path in os.listdir(fileName):
             if path.endswith(".docx"):

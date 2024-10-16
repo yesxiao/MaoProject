@@ -1,5 +1,4 @@
-
- # 根据内容，获得编号及内容的字典
+import os.path  # 根据内容，获得编号及内容的字典
 def getNumPairs(fromId:int,content:str,end:str ,max:int ):
     if fromId <= 0 :
         print("getNumPairs ID错误，%d" % fromId )
@@ -50,6 +49,14 @@ def solve(s, str, n):
         return -1
     return len(s) - len(sep[-1]) - len(str)
 
+def getImportPath():
+    path="导入.txt"
+    if not os.path.exists(path):
+        raise Exception("导入文件不存在%s" % path)
+    with open(path,"r",encoding="utf-8") as f:
+        content = f.read()
+        content = content.strip()
+        return content
 
 if __name__ == '__main__':
     test: str = r"【分析】47.读图可知，珠穆朗玛峰的海拔为8848.86米，章子峰海拔为7543米，故二者高差是1305.86米，故A错；从前进营地前往突击营地先由东北向西南，再由西北向东南，故B错；由于珠穆朗玛峰海拔高，气温低，空气稀薄，故面临着严寒、缺氧的困难，故C正确；由图可知，该图的等高距是400米，突击营地的海拔约8400米，前进营地的海拔约6600米，故D错，故依题意选C。\
