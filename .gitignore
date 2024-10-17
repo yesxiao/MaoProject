@@ -1,2 +1,7 @@
 /SourceFiles
 /ExportTool/.idea
+/ExportTool/.venv
+/ExportTool/__pycache__
+/ExportTool/build
+/ExportTool/dist
+/.idea
