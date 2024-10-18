@@ -48,6 +48,7 @@ class QuestionData:
         self.isSignle = False
         self.main = ""
         self._optStr = ""
+        self._ansStr = ""
 
     def AddMain(self,mainContent):
         self.main = self.main + mainContent
@@ -79,8 +80,11 @@ class QuestionData:
         return True
 
     def AddAnswer(self, answer):
-        if answer.find("【答案】") != -1:
-            answer = answer.replace("．",".")
+        self._ansStr = self._ansStr + "\n" + answer
+
+    def updateAns(self):
+        if self._ansStr.find("【答案】") != -1:
+            answer = self._ansStr.replace("．",".")
             answer = answer.replace("【答案】","")
             answer = answer.strip()
             # 使用正则表达式匹配数字和对应的答案
@@ -99,17 +103,18 @@ class QuestionData:
             else:
                 self.ans = answer
         else:
-            self.analysis = self.analysis + answer
+            self.analysis = self.analysis + self._ansStr
 
     def updateAnl(self,max:int):
         paragraphs = []
         current_paragraph = []
         self.qus = self.qus.replace("("," [").replace("（"," [").replace(")","] ").replace("）","] ")
-        self.analysis = self.analysis.replace("【分析】","【解析】").replace("【详解】","【解析】")
+        self._ansStr = self._ansStr.replace("【甲】","[甲]").replace("【乙】","[乙]").replace("【丙】","[丙]").replace("【丁】","[丁]")
+        analysis1:str = self._ansStr.replace("【分析】","【解析】").replace("【详解】","【解析】")
         pattern = r'【解析】(.*?)(?=【)'
-        if not self.isSignle and not self.analysis.__contains__("【点睛】"):
-            self.analysis = self.analysis + "【"
-        matches = re.findall(pattern, self.analysis, re.DOTALL)
+        if not self.isSignle and not analysis1.__contains__("【点睛】"):
+            analysis1 = analysis1 + "【"
+        matches = re.findall(pattern, analysis1, re.DOTALL)
         anlDic = {}
         if not self.isSignle and len(matches) == 0:
             print("id=%d 解析中答案查找失败" % self.id)
@@ -121,7 +126,7 @@ class QuestionData:
                     return
                 print("找不到解析: id = %d" % self.id )
                 return
-            tmpAnl = re.sub(pattern,"【解析】"+tmpAnl,self.analysis,flags=re.DOTALL)
+            tmpAnl = "【解析】"+tmpAnl
             self.analysis = tmpAnl
             if self.analysis.endswith("【"):
                 self.analysis = self.analysis[:-1]
@@ -194,7 +199,6 @@ def formatUnderline(d:docx.text.paragraph.Paragraph):
             # item.text = item.text.replace(" ","_")
             item.text = "____________"
 
-
 def HandleFile(fileName:str):
     global curState,queId,isValid,comprehensionArr,curComprehensItem,curQuestionDataItem
     curState = State.invaid
@@ -222,6 +226,7 @@ def HandleFile(fileName:str):
     optionROle = re.compile(r"^[A-Z]\s*\.\s*")
     for d in doc.paragraphs:
         formatUnderline(d)
+
         str = d.text.replace("．", ".")
         if str == '':
             continue
@@ -395,6 +400,7 @@ def writeAns(fileName):
         for q in com.ques:
             que:QuestionData = q
             que.UpdateOpt()
+            que.updateAns()
             que.updateAnl( com.ques[0].id + len(com.ques) - 1)
             if que.ans == "":
                 print("答案为空,id=%d" % que.id )

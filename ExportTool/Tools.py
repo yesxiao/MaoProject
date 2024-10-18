@@ -2,6 +2,15 @@ import os.path  # 根据内容，获得编号及内容的字典
 import re
 
 
+# 替换 (1)为1.
+def replace_parentheses_with_period(text):
+    # 定义正则表达式模式
+    pattern = r'\((\d+)\)'
+    # 使用 re.sub 替换匹配到的内容
+    replaced_text = re.sub(pattern, r'\1.', text)
+
+    return replaced_text
+
 def getNumPairs(fromId:int,content:str,end:str ,max:int ):
     if fromId <= 0 :
         print("getNumPairs ID错误，%d" % fromId )
@@ -21,7 +30,7 @@ def getNumPairs(fromId:int,content:str,end:str ,max:int ):
         idx1 = checkStrNumFormat( fromId + 1 , content , times)
     if idx1 == -1:
         rtnStr = content[idx:]
-        if end :
+        if end and fromId + 1 == max :
             endIdx = rtnStr.find(end)
             if endIdx != -1:
                 return rtnStr[0:endIdx]
