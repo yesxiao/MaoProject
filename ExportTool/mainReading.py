@@ -47,6 +47,7 @@ class QuestionData:
         self.analysis = ""
         self.isSignle = False
         self.main = ""
+        self._optStr = ""
 
     def AddMain(self,mainContent):
         self.main = self.main + mainContent
@@ -54,8 +55,11 @@ class QuestionData:
     def AddQueContent(self, ques):
         self.qus = self.qus + ques
 
-    def AddOption(self, opts):
-        optstr = opts.replace("\t", "")
+    def AddOption(self,opts):
+        self._optStr = self._optStr + "\t" + opts
+
+    def UpdateOpt(self):
+        optstr = self._optStr.replace("\t", "")
         optstr = optstr.replace("A.", "A.").replace("A .", "A.")
         optstr = optstr.replace("B.", "#B.").replace("B .", "#B.")
         optstr = optstr.replace("C.", "#C.").replace("C .", "#C.")
@@ -380,6 +384,7 @@ def writeAns(fileName):
                 print("无题干:题目" + com.ques[0].qus)
             else:
                 com.main = com.ques[0].qus
+        com.main = com.main.replace("【","\n【")
         com.main = com.main.replace("("," [").replace("（"," [").replace(")","] ").replace("）","] ")
         if bool(re.match(r'^\d+\.', com.main.strip())):
             print("题干中，不能以 \"数字+.\" 开头，如\"1.\" ，请将\".\"改成其他字符 , 题干 =  %s " % com.main )
@@ -389,6 +394,7 @@ def writeAns(fileName):
         num = 0
         for q in com.ques:
             que:QuestionData = q
+            que.UpdateOpt()
             que.updateAnl( com.ques[0].id + len(com.ques) - 1)
             if que.ans == "":
                 print("答案为空,id=%d" % que.id )
