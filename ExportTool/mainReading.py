@@ -13,7 +13,7 @@ from enum import Enum
 from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
 
-from Tools import getNumPairs, getImportPath, isReadingMain
+from Tools import getNumPairs, getImportPath, isReadingMain, split_options
 
 
 class State(Enum):
@@ -60,19 +60,20 @@ class QuestionData:
         self._optStr = self._optStr + "\t" + opts
 
     def UpdateOpt(self):
-        optstr = self._optStr.replace("\t", "")
-        optstr = optstr.replace("A.", "A.").replace("A .", "A.")
-        optstr = optstr.replace("B.", "#B.").replace("B .", "#B.")
-        optstr = optstr.replace("C.", "#C.").replace("C .", "#C.")
-        optstr = optstr.replace("D.", "#D.").replace("D .", "#D.")
-        optstr = optstr.replace("E.", "#E.").replace("E .", "#E.")
-        optstr = optstr.replace("F.", "#F.").replace("F .", "#F.")
-        optstr = optstr.strip()
-        arr = optstr.split("#")
-        # self.opt = self.opt + arr
-        for a in arr:
-            if a != '' and len(a) > 0:
-                self.opt.append(a)
+        self.opt = split_options(self._optStr)
+        # optstr = self._optStr.replace("\t", "")
+        # optstr = optstr.replace("A.", "A.").replace("A .", "A.")
+        # optstr = optstr.replace("B.", "#B.").replace("B .", "#B.")
+        # optstr = optstr.replace("C.", "#C.").replace("C .", "#C.")
+        # optstr = optstr.replace("D.", "#D.").replace("D .", "#D.")
+        # optstr = optstr.replace("E.", "#E.").replace("E .", "#E.")
+        # optstr = optstr.replace("F.", "#F.").replace("F .", "#F.")
+        # optstr = optstr.strip()
+        # arr = optstr.split("#")
+        # # self.opt = self.opt + arr
+        # for a in arr:
+        #     if a != '' and len(a) > 0:
+        #         self.opt.append(a)
         if len(self.opt) > 6:
             print("id:%d 选项格式有错(或者下一题的题目格式有错,题目一定是数字+.的格式)，请检查,选项超过4个 %s" % (self.oldId, " ".join(self.opt)))
             return False
@@ -199,6 +200,13 @@ def formatUnderline(d:docx.text.paragraph.Paragraph):
             # item.text = item.text.replace(" ","_")
             item.text = "____________"
 
+def replaceCommon(line:str):
+    line = line.replace("【指出通假】","[指出通假]").replace("【借助工具书】","[借助工具书]")
+    line = line.replace("【同类现象】","[同类现象]").replace("．", ".")
+    line = line.replace("【链接材料一】","[链接材料一]").replace("【链接材料二】","[链接材料二]")
+    line = line.replace("【链接材料】", "[链接材料]")
+    return line
+
 def HandleFile(fileName:str):
     global curState,queId,isValid,comprehensionArr,curComprehensItem,curQuestionDataItem
     curState = State.invaid
@@ -226,8 +234,7 @@ def HandleFile(fileName:str):
     optionROle = re.compile(r"^[A-Z]\s*\.\s*")
     for d in doc.paragraphs:
         formatUnderline(d)
-
-        str = d.text.replace("．", ".")
+        str = replaceCommon(d.text)
         if str == '':
             continue
         checkContent(str)

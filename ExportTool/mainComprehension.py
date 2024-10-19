@@ -13,7 +13,7 @@ from enum import Enum
 from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
 
-from Tools import getNumPairs, getImportPath
+from Tools import getNumPairs, getImportPath, split_options
 
 
 class State(Enum):
@@ -47,6 +47,7 @@ class QuestionData:
         self.analysis = ""
         self.isSignle = False
         self.main = ""
+        self._optStr = ""
 
     def AddMain(self,mainContent):
         self.main = self.main + mainContent
@@ -55,19 +56,11 @@ class QuestionData:
         self.qus = self.qus + ques
 
     def AddOption(self, opts):
-        optstr = opts.replace("\t", "")
-        optstr = optstr.replace("A.", "A.").replace("A .", "A.")
-        optstr = optstr.replace("B.", "#B.").replace("B .", "#B.")
-        optstr = optstr.replace("C.", "#C.").replace("C .", "#C.")
-        optstr = optstr.replace("D.", "#D.").replace("D .", "#D.")
-        optstr = optstr.replace("E.", "#E.").replace("E .", "#E.")
-        optstr = optstr.replace("F.", "#F.").replace("F .", "#F.")
-        optstr = optstr.strip()
-        arr = optstr.split("#")
-        # self.opt = self.opt + arr
-        for a in arr:
-            if a != '' and len(a) > 0:
-                self.opt.append(a)
+        self._optStr = self._optStr + "\t" + opts
+        return True
+
+    def UpdateOpt(self):
+        self.opt = split_options(self._optStr)
         if len(self.opt) > 6:
             print("id:%d 选项格式有错(或者下一题的题目格式有错,题目一定是数字+.的格式)，请检查,选项超过4个 %s" % (self.oldId, " ".join(self.opt)))
             return False
@@ -389,6 +382,7 @@ def writeAns(fileName):
         num = 0
         for q in com.ques:
             que:QuestionData = q
+            que.UpdateOpt()
             que.updateAnl( com.ques[0].id + len(com.ques) - 1)
             if que.ans == "":
                 print("答案为空,id=%d" % que.id )

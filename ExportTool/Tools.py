@@ -2,6 +2,31 @@ import os.path  # 根据内容，获得编号及内容的字典
 import re
 
 
+def split_options(text):
+    text = text.replace("．",".")
+    arr = ["A","B","C","D","E","F"]
+    text.replace("．",".")
+    rtnArr = []
+    sIdx = -1
+    curDesc = ""
+    isLastLatterIsEmpty:bool = True
+    for lIdx in range(len(text)):
+        curLeter = text[lIdx]
+        if curLeter in arr and lIdx < len(text) - 1 and text[lIdx+1] == "." and isLastLatterIsEmpty and arr.index(curLeter) == sIdx + 1:
+            # 开始
+            if curDesc != "" and len(curDesc) > 1 :
+                rtnArr.append(curDesc)
+            curDesc = "" + curLeter
+            sIdx = sIdx + 1
+        else:
+            curDesc = curDesc + curLeter
+        isLastLatterIsEmpty = curLeter == " " or curLeter != "\t" or curLeter != "\n"
+    if len(curDesc) > 1 :
+        rtnArr.append(curDesc)
+    return rtnArr
+
+
+
 # 替换 (1)为1.
 def replace_parentheses_with_period(text):
     # 定义正则表达式模式
@@ -84,16 +109,12 @@ def isReadingMain(content:str):
 
 
 
+
 if __name__ == '__main__':
-    test: str = r"【分析】47.读图可知，珠穆朗玛峰的海拔为8848.86米，章子峰海拔为7543米，故二者高差是1305.86米，故A错；从前进营地前往突击营地先由东北向西南，再由西北向东南，故B错；由于珠穆朗玛峰海拔高，气温低，空气稀薄，故面临着严寒、缺氧的困难，故C正确；由图可知，该图的等高距是400米，突击营地的海拔约8400米，前进营地的海拔约6600米，故D错，故依题意选C。\
-48.现代科学研究表明，海陆是不断变迁的，喜马拉雅山上发现海洋生物化石说明这里曾经是海洋，由于地壳的变动，海洋演变为陆地，故B正确，故选B。\
-49.由题目可知，2018年底，相关部门发出公告称，禁止任何单位和个人进入珠穆朗玛峰国家级自然保护区绒布寺核心区域旅游，这一措施的主要目的是更好保护当地的生态环境，因为这里海拔高，气候恶劣，生态环境脆弱，故B正确，故选B。\
-【点睛】中国登山队两次登上世界最高峰的壮举，具有非凡的历史意义。珠峰高程测量的核心目标是精确测定珠峰高度，测量成果可用于地球动力学板块运动等领域研究。精确的峰顶雪深、气象、风速等数据，将为冰川监测、生态环境保护等方面的研究提供第一手资料。【aaa】"
-    p = getNumPairs(47, test,"【")
-    print( "47:" + p)
-    p = getNumPairs(48, test,"【")
-    print("48:" + p)
-    p = getNumPairs(49, test,"【")
-    print("49:" + p )
+    test: str = (r"A．Taichung,helGE.lo. PAWS	B．DetrA.oi Ct Pub.lic Radio"
+                 r"．UNICEF.	D．ORBIS.")
+    opts = split_options(test)
+    for k in opts:
+        print(k )
 
 
