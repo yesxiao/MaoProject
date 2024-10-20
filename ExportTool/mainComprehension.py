@@ -178,10 +178,11 @@ def main():
         HandleFile(fileName)
 
 def formatUnderline(d:docx.text.paragraph.Paragraph):
-    for item in d.runs :
-        if item.underline :
+    return
+    #for item in d.runs :
+#    if item.underline :
             # item.text = item.text.replace(" ","_")
-            item.text = "____________"
+            # item.text = "____________"
 
 
 def HandleFile(fileName:str):

@@ -8,4 +8,6 @@ mainHistory.py  历史
 
 mainComprehension.py 理解题
 
+mainReading.py  语文阅读题
+
 输入目录直接在  说明.txt中修改
