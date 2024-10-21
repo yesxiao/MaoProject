@@ -88,9 +88,12 @@ class QuestionData:
             answer = self._ansStr.replace("．",".")
             answer = answer.replace("【答案】","")
             answer = answer.strip()
+            tmpAnswer = answer
+            if tmpAnswer.find("】") -1:
+                tmpAnswer = tmpAnswer[:tmpAnswer.find("【")]
             # 使用正则表达式匹配数字和对应的答案
-            if answer.find(".") != -1:
-                matches = re.findall(r'(\d+)\.\s*(\S+)', answer)
+            if tmpAnswer.find(".") != -1:
+                matches = re.findall(r'(\d+)\.\s*(\S+)', tmpAnswer)
                 answers = {}
                 if matches:
                     for match in matches:
@@ -204,7 +207,11 @@ def replaceCommon(line:str):
     line = line.replace("【指出通假】","[指出通假]").replace("【借助工具书】","[借助工具书]")
     line = line.replace("【同类现象】","[同类现象]").replace("．", ".")
     line = line.replace("【链接材料一】","[链接材料一]").replace("【链接材料二】","[链接材料二]")
+    line = line.replace("【示例一】", "[示例一]").replace("【示例二】", "[示例二]").replace("【示例三】", "[示例三]")
+
     line = line.replace("【链接材料】", "[链接材料]")
+    line = line.replace("【分析】", "【解析】").replace("【详解】", "【解析】")
+    line = line.replace("【甲】","[甲]").replace("【乙】","[乙]").replace("【丙】","[丙]").replace("【丁】","[丁]")
     return line
 
 def HandleFile(fileName:str):
@@ -316,6 +323,12 @@ def updateState(s:str):
                 curQuestionDataItem = QuestionData(s)
                 curComprehensItem.ques.append(curQuestionDataItem)
             else:
+                if s.__contains__("."):
+                    #说明上一题只有题目没有答案
+                    if s.split(".")[0].isdigit() and curQuestionDataItem.id + 1 == int(s.split(".")[0]):
+                        curQuestionDataItem = QuestionData(s)
+                        curComprehensItem.ques.append(curQuestionDataItem)
+                        return
                 curQuestionDataItem.AddQueContent(s)
         case State.opt:
             if curQuestionDataItem is None:
