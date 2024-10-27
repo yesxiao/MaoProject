@@ -85,7 +85,9 @@ class QuestionData:
 
     def updateAns(self):
         if self._ansStr.find("【答案】") != -1:
+
             answer = self._ansStr.replace("．",".")
+            answer = answer.replace("     ", ";")
             answer = answer.replace("【答案】","")
             answer = answer.strip()
             tmpAnswer = answer
@@ -98,6 +100,8 @@ class QuestionData:
                 if matches:
                     for match in matches:
                         number, a = match
+                        if a[0] == ";":
+                            a = a[1:]
                         answers[number] = a
 
                 if not answers.__contains__(str(self.id)):
@@ -108,6 +112,8 @@ class QuestionData:
                 self.ans = answer
         else:
             self.analysis = self.analysis + self._ansStr
+        if len(self.ans) > 80 and self.qus.__contains__("____"):
+            print("被识别为填空题，但是答案超过80的长度，建议改成 [**请回答**] 。 题目:%s" % self.qus)
 
     def updateAnl(self,max:int):
         paragraphs = []
@@ -198,10 +204,11 @@ def main():
         HandleFile(fileName)
 
 def formatUnderline(d:docx.text.paragraph.Paragraph):
-    for item in d.runs :
-        if item.underline :
+    return
+    # for item in d.runs :
+    #     if item.underline :
             # item.text = item.text.replace(" ","_")
-            item.text = "____________"
+            # item.text = "____________"
 
 def replaceCommon(line:str):
     line = line.replace("【指出通假】","[指出通假]").replace("【借助工具书】","[借助工具书]")
