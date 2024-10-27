@@ -2,12 +2,14 @@ mainEn.py  选择题
 
 mainFill.py 填空
 
-mainEnPassage.py 完形填空
+mainEnPassage.py 完形填空 （旧）
 
 mainHistory.py  历史
 
 mainComprehension.py 理解题
 
 mainReading.py  语文阅读题
+
+mainEnCloze.py  完形填空 （新）
 
 输入目录直接在  说明.txt中修改
