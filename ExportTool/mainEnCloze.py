@@ -138,7 +138,8 @@ class MainItem(BaseItem):
 
     def getResult(self,id:int):
         r:str = "%d.\n" % id
-        r = r + self.content[1:]
+        self.content = self.content.replace("#","")
+        r = r + self.content
         score:int = 2
         for o in self.options:
             r = r + o.getResult(score) + "\n"
@@ -235,6 +236,7 @@ def HandleFile(file_name: str):
         line = d.text.replace("．", ".")
         if line == '':
             continue
+        line = "\n        "+line
         line = common_repalce(line)
         is_new_item = checkState(line)
         if cur_state == State.finish:
