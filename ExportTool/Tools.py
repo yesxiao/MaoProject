@@ -20,6 +20,8 @@ def split_options(text):
             curDesc = "" + curLeter
             sIdx = sIdx + 1
         else:
+            if curDesc == '':
+                continue
             curDesc = curDesc + curLeter
         isLastLatterIsEmpty = curLeter == " " or curLeter != "\t" or curLeter != "\n"
     if len(curDesc) > 1:

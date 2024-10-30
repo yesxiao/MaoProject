@@ -38,9 +38,25 @@ class BaseItem:
 #选项
 class OptionItem(BaseItem):
 
-    def Update(self):
-        pass
+    def __init__(self):
+        super().__init__()
+        self.opt_id = 0
+        self.opt_arr = []
 
+    def update(self):
+        opt_id_str:str = self.content.split(".")[0]
+        self.opt_id = int(opt_id_str)
+        self.opt_arr = split_options(self.content)
+
+    def getResult(self,score:int ):
+        r:str = "\n%d." % self.opt_id
+        isFirst:bool = True
+        for a in self.opt_arr:
+            r = r + "\n" + str(a).strip()
+            if isFirst:
+                r = r + " =>" + str(score)
+            isFirst = False
+        return r
 
 #知识点
 class KnowledgePointItem(BaseItem):
@@ -51,7 +67,22 @@ class KnowledgePointItem(BaseItem):
 
 #答案
 class AnswerItem(BaseItem):
-    pass
+    def __init__(self):
+        super().__init__()
+        self._answer_str = None
+
+    def update(self):
+        self._answer_str = ""
+        from_id:int = get_first_number_before_dot(self.content)
+        to_id:int = get_max_number(self.content)
+        for i in range(to_id-from_id+1):
+            tmp_id:int = from_id + i
+            r:str = getNumPairs(tmp_id, self.content, None, to_id)
+            self._answer_str = self._answer_str + r.strip()
+
+    def getResult(self):
+        return self._answer_str
+
 
 
 #解析
@@ -75,7 +106,10 @@ class AnalysisItem(BaseItem):
             if anly is None or anly == "":
                 print("解析内容为空,id=%d" % (first_id + i))
                 continue
-            self.anlyItems.append(anly)
+            self.anlyItems.append( str(i+1) + ":" + anly)
+
+    def getResult(self):
+        return "\n".join(self.anlyItems)
 
 
 class MainItem(BaseItem):
@@ -100,6 +134,23 @@ class MainItem(BaseItem):
         self.answer.update()
         if self.analysis :
             self.analysis.update()
+
+
+    def getResult(self,id:int):
+        r:str = "%d.\n" % id
+        r = r + self.content[1:]
+        score:int = 2
+        for o in self.options:
+            r = r + o.getResult(score) + "\n"
+        r = r + "答案:" + self.answer.getResult() + "\n"
+        r = r + "分数:" + str(score*len(self.options)) + "\n"
+        r = r + "分类:完形填空\n"
+        r = r + "标签:" + self.main_knowledge_point.content.replace("【知识点】","") + "\n"
+        r = r +  "解析:" + self.analysis.getResult() + "\n\n\n"
+
+        if len(self.options) != len(self.analysis.anlyItems):
+            print( "选项和解析数量不匹配, id = %d " % id )
+        return r
 
     def add_option(self, opt: OptionItem):
         self.options.append(opt)
@@ -148,6 +199,17 @@ def common_repalce(line:str):
     line = line.replace("【导语】","【解析】")
     return line
 
+def formatUnderline(d:docx.text.paragraph.Paragraph):
+    for item in d.runs :
+        if item.underline :
+            s:str = item.text.strip()
+            if s.isdigit():
+                item.text = "(  )"
+                item.underline = False
+                #print(item.text)
+                # item.text = item.text.replace(" ","_")
+                # item.text = "____________"
+
 def HandleFile(file_name: str):
     global cur_state, is_valid, mainItems, cur_main_item, cur_opt_item, cur_answer_item, cur_knowledge_point, cur_analysis_item
     cur_state = State.invaid
@@ -168,8 +230,8 @@ def HandleFile(file_name: str):
     global category
     global type
     name, category, type, mark = AnalyzeFileName(file_name)
-
     for d in doc.paragraphs:
+        formatUnderline(d)
         line = d.text.replace("．", ".")
         if line == '':
             continue
@@ -319,8 +381,11 @@ def writeAns(fileName):
     content: str = ""
     main_id:int = 0
     allQue: int = 0
+    main_id:int = 1
     for main_item in mainItems:
-        pass
+        r = main_item.getResult(main_id)
+        content = content + r + "\n\n"
+        main_id = main_id + 1
 
 
     run_2 = para1.add_run(content)  # 以add_run的方式追加内容，方便后续格式调整
