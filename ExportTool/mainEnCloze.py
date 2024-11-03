@@ -106,7 +106,7 @@ class AnalysisItem(BaseItem):
             if anly is None or anly == "":
                 print("解析内容为空,id=%d" % (first_id + i))
                 continue
-            self.anlyItems.append( str(i+1) + ":" + anly)
+            self.anlyItems.append( str(first_id + i) + ":" + anly)
 
     def getResult(self):
         return "\n".join(self.anlyItems)

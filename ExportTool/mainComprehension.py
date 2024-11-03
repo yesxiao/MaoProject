@@ -216,6 +216,7 @@ def HandleFile(fileName:str):
         if str == '':
             continue
         checkContent(str)
+        str = "\n        " + str
         if curState == State.finish :
             break
         if curState == State.invaid:
