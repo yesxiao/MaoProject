@@ -17,9 +17,11 @@ class State(Enum):
     main = 1  # 题干
     opt = 3  # 选项
     answer = 4  # 答案
-    point = 5  # 知识点
-    anly = 6  # 解析或导语
-    finish = 7
+    origin = 5  # 来源
+    difficulty = 6  # 难度
+    point = 7  # 知识点
+    anly = 8  # 解析或导语
+    finish = 100
 
 
 class BaseItem:
@@ -124,6 +126,10 @@ class MainItem(BaseItem):
         self.answer = None
         # 解析
         self.analysis: AnalysisItem = None
+        # 来源
+        self.origin = None
+        # 难度
+        self.difficulty = None
 
     def update(self):
         super().update()
@@ -138,6 +144,12 @@ class MainItem(BaseItem):
 
     def getResult(self,id:int):
         r:str = "%d.\n" % id
+        if self.difficulty:
+            r = r + "\n" + self.difficulty.content
+        if self.origin:
+            r = r + "\n" + self.origin.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">")
+        if self.main_knowledge_point:
+            r = r + "\n" + self.main_knowledge_point.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">") + "\n"
         self.content = self.content.replace("#","")
         r = r + self.content
         score:int = 2
@@ -146,7 +158,7 @@ class MainItem(BaseItem):
         r = r + "答案:" + self.answer.getResult() + "\n"
         r = r + "分数:" + str(score*len(self.options)) + "\n"
         r = r + "分类:完形填空\n"
-        r = r + "标签:" + self.main_knowledge_point.content.replace("【知识点】","") + "\n"
+        # r = r + "标签:" + self.main_knowledge_point.content.replace("【知识点】","") + "\n"
         r = r +  "解析:" + self.analysis.getResult() + "\n\n\n"
 
         if len(self.options) != len(self.analysis.anlyItems):
@@ -180,6 +192,10 @@ cur_answer_item: AnswerItem = None
 cur_knowledge_point: KnowledgePointItem = None
 #解析
 cur_analysis_item: AnalysisItem = None
+#难度
+cur_difficulty_item:BaseItem = None
+#来源
+cur_original_item:BaseItem = None
 
 
 def main():
@@ -221,6 +237,8 @@ def HandleFile(file_name: str):
     cur_answer_item = None
     cur_knowledge_point = None
     cur_analysis_item = None
+    cur_original_item = None
+    cur_difficulty_item = None
     if file_name.__contains__("[上传]"):
         return
     if not os.path.exists(file_name):
@@ -236,7 +254,8 @@ def HandleFile(file_name: str):
         line = d.text.replace("．", ".")
         if line == '':
             continue
-        line = "\n        "+line
+        if not line.startswith("【"):
+            line = "\n        "+line
         line = common_repalce(line)
         is_new_item = checkState(line)
         if cur_state == State.finish:
@@ -285,13 +304,20 @@ def checkState(s: str):
     if cur_state.value <= State.anly.value and s.find("【解析】") != -1:
         cur_state = State.anly
         return is_new_item
+    if s.find("【难度】") != -1:
+        cur_state = State.difficulty
+        return is_new_item
+    if s.find("【来源】") != -1:
+        cur_state = State.origin
+        return is_new_item
     is_new_item = False
     return is_new_item
 
 
 def update_state(line: str, is_new: bool):
     global cur_state
-    global is_valid, cur_main_item, mainItems, cur_opt_item, cur_answer_item, cur_knowledge_point, cur_analysis_item
+    global is_valid, cur_main_item, mainItems, cur_opt_item, cur_answer_item, cur_knowledge_point, \
+        cur_analysis_item,cur_difficulty_item,cur_original_item
 
     if not is_valid:
         return
@@ -324,6 +350,16 @@ def update_state(line: str, is_new: bool):
                 cur_analysis_item = AnalysisItem()
                 cur_main_item.set_analysis(cur_analysis_item)
             cur_analysis_item.addContent(line)
+        case State.difficulty:
+            if is_new:
+                cur_difficulty_item = BaseItem()
+                cur_main_item.difficulty = cur_difficulty_item
+            cur_difficulty_item.addContent(line)
+        case State.origin:
+            if is_new:
+                cur_original_item = BaseItem()
+                cur_main_item.origin = cur_original_item
+            cur_original_item.addContent(line)
 
 
 def is_option(line: str):
