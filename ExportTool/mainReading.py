@@ -118,6 +118,7 @@ class QuestionData:
     def updateAnl(self,max:int):
         paragraphs = []
         current_paragraph = []
+        self.qus = self.qus.strip()
         self.qus = self.qus.replace("("," [").replace("（"," [").replace(")","] ").replace("）","] ")
         self._ansStr = self._ansStr.replace("【甲】","[甲]").replace("【乙】","[乙]").replace("【丙】","[丙]").replace("【丁】","[丁]")
         analysis1:str = self._ansStr.replace("【分析】","【解析】").replace("【详解】","【解析】")
@@ -134,7 +135,7 @@ class QuestionData:
             if not tmpAnl:
                 if self.isSignle :
                     return
-                print("找不到解析: id = %d" % self.id )
+                print("找不到解析: id = %d,解析如下:%s\n========================\n\n\n" % (self.id,self._ansStr) )
                 return
             tmpAnl = "【解析】"+tmpAnl
             self.analysis = tmpAnl
@@ -219,6 +220,9 @@ def replaceCommon(line:str):
     line = line.replace("【链接材料】", "[链接材料]")
     line = line.replace("【分析】", "【解析】").replace("【详解】", "【解析】")
     line = line.replace("【甲】","[甲]").replace("【乙】","[乙]").replace("【丙】","[丙]").replace("【丁】","[丁]")
+
+    for i in range(20):
+        line = line.replace("【小题" + str(i+1)+"】",str(i+1)+".")
     return line
 
 def HandleFile(fileName:str):
@@ -256,6 +260,8 @@ def HandleFile(fileName:str):
             break
         if curState == State.invaid:
             continue
+        if curState == State.main:
+            str = "\n        " + str
         updateState(str)
 
     ## 写答案
