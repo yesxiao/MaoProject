@@ -13,7 +13,7 @@ from enum import Enum
 from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
 
-from Tools import getNumPairs, getImportPath, isReadingMain, split_options
+from Tools import getNumPairs, getImportPath, isReadingMain, split_options, get_first_number_before_dot, get_max_number
 
 
 class State(Enum):
@@ -95,19 +95,26 @@ class QuestionData:
                 tmpAnswer = tmpAnswer[:tmpAnswer.find("【")]
             # 使用正则表达式匹配数字和对应的答案
             if tmpAnswer.find(".") != -1:
-                matches = re.findall(r'(\d+)\.\s*(\S+)', tmpAnswer)
+                first_num:int = get_first_number_before_dot(tmpAnswer)
+                max_num:int = get_max_number(tmpAnswer)
                 answers = {}
-                if matches:
-                    for match in matches:
-                        number, a = match
-                        if a[0] == ";":
-                            a = a[1:]
-                        answers[number] = a
+                for i in range(max_num - first_num + 1):
+                    tmp_id: int = first_num + i
+                    r: str = getNumPairs(tmp_id, tmpAnswer, None, max_num)
+                    answers[tmp_id] = r
+                matches = re.findall(r'(\d+)\.\s*(\S+)', tmpAnswer)
 
-                if not answers.__contains__(str(self.id)):
+                # if matches:
+                #     for match in matches:
+                #         number, a = match
+                #         if a[0] == ";":
+                #             a = a[1:]
+                #         answers[number] = a
+
+                if not answers.__contains__(self.id):
                     print("id:%d 答案找不到,当前答案是:%s" % (self.id,answer))
                     return
-                self.ans = answers[str(self.id)]
+                self.ans = answers[self.id]
             else:
                 self.ans = answer
         else:
