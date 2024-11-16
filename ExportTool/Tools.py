@@ -146,7 +146,11 @@ def get_first_number_before_dot(text):
 
     if match:
         # 返回匹配的数字
-        return int(match.group(1))
+        rtn = int(match.group(1))
+        if rtn == 0:  # 如果是0.几这种，直接去掉
+            text = text.replace("0.","")
+            return get_first_number_before_dot(text)
+        return rtn
     else:
         # 如果没有找到匹配项，则返回 None 或者空字符串
         return None
@@ -165,6 +169,16 @@ def get_max_number( text: str) :
             return last_num
         last_num = cur_num
         cur_num = cur_num + 1
+
+def is_start_with_num_and_point(s:str):
+    s = s.strip()
+    if s.__contains__("."):
+        arr = s.split(".")
+        if arr[0].isdigit():
+            return True
+        return False
+    else:
+        return False
 
 
 if __name__ == '__main__':

@@ -73,15 +73,24 @@ class AnswerItem(BaseItem):
     def __init__(self):
         super().__init__()
         self._answer_str = None
+        self._total_num:int = 0
 
     def update(self):
         self._answer_str = ""
+        self.content = self.content.replace("．",".")
         from_id:int = get_first_number_before_dot(self.content)
         to_id:int = get_max_number(self.content)
+        self._total_num = to_id - from_id + 1
         for i in range(to_id-from_id+1):
             tmp_id:int = from_id + i
             r:str = getNumPairs(tmp_id, self.content, None, to_id)
-            self._answer_str = self._answer_str + r.strip()
+            if self._answer_str != "":
+                self._answer_str = self._answer_str + ";" + r.strip()
+            else:
+                self._answer_str =  self._answer_str + r.strip()
+
+    def get_number(self):
+        return self._total_num
 
     def getResult(self):
         return self._answer_str
@@ -96,6 +105,8 @@ class AnalysisItem(BaseItem):
         self.desc = None
         self.dian_jing:str = ""
         self.anlyItems = []
+        self._max_anly_id = 0
+        self._first_anly_id = 0
 
     def update(self):
         super().update()
@@ -119,6 +130,14 @@ class AnalysisItem(BaseItem):
                 print("解析内容为空:%s" % self.content)
                 return
             self.anlyItems.append( str(first_id + i) + ":" + anly)
+        self._max_anly_id = max_id
+        self._first_anly_id = first_id
+
+    def get_max_anly_id(self):
+        return self._max_anly_id
+
+    def get_first_anly_id(self):
+        return self._first_anly_id
 
     def getResult(self):
         return "\n".join(self.anlyItems) + "\n" + self.dian_jing
@@ -160,7 +179,7 @@ class MainItem(BaseItem):
     def replacePot(self):
         arr = ["A","B","C","D","E","F"]
         for a in arr:
-            tmp:str = " " + a + "."
+            tmp:str = "" + a + "."
             if self.content.__contains__(tmp):
                 new_str:str = " " + a + " ."
                 self.content = self.content.replace( tmp , new_str)
@@ -169,7 +188,7 @@ class MainItem(BaseItem):
     def getResult(self,id:int):
         r:str = "%d.\n" % id
         if self.difficulty:
-            r = r + "\n" + self.difficulty.content
+            r = r + self.difficulty.content
         if self.origin:
             r = r + "\n" + self.origin.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">")
         if self.main_knowledge_point:
@@ -180,7 +199,7 @@ class MainItem(BaseItem):
         for o in self.options:
             r = r + o.getResult(score) + "\n"
         if self.answer :
-            r = r + "答案:" + self.answer.getResult() + "\n"
+            r = r + "\n答案:" + self.answer.getResult() + "\n"
         r = r + "分数:" + str(score*len(self.options)) + "\n"
         r = r + "分类:完形填空\n"
         # r = r + "标签:" + self.main_knowledge_point.content.replace("【知识点】","") + "\n"
@@ -188,7 +207,7 @@ class MainItem(BaseItem):
             print("无解析: %s " % self.content )
         else:
             r = r +  "解析:" + self.analysis.getResult() + "\n\n\n"
-            if len(self.options) != len(self.analysis.anlyItems):
+            if self.answer.get_number() != len(self.analysis.anlyItems):
                 print("选项和解析数量不匹配, id = %d , 选项:%d个 , 解析:%d ,  题干:%s" % (id, len(self.options) ,len(self.analysis.anlyItems), self.content))
 
         return r
@@ -241,7 +260,14 @@ def main():
 
 
 def common_repalce(line:str):
+    line = line.replace( "答案:", "【答案】").replace("．",".")
     line = line.replace("【导语】","【解析】").replace("【导读】","【解析】").replace("【分析】","【解析】").replace("A.M.","AM").replace("A.D.","AD").replace("P.M.","PM")
+    return line
+
+def replace_fix_option(line:str):
+    for i in range(26):
+        letter_num:str = str(chr(i+64+1))
+        line = line.replace(letter_num + ".","(" + letter_num + ")").replace(letter_num+"．","(" + letter_num + ")")
     return line
 
 def formatUnderline(d:docx.text.paragraph.Paragraph):
@@ -250,7 +276,7 @@ def formatUnderline(d:docx.text.paragraph.Paragraph):
             s:str = item.text.strip()
             if s.isdigit():
 
-                item.text = "[%s] ( ) " % s
+                item.text = "[%s]_____" %  s
                 item.underline = False
                 #print(item.text)
                 # item.text = item.text.replace(" ","_")
@@ -284,15 +310,34 @@ def HandleFile(file_name: str):
     is_last_start:bool = False
     first_num = None
     is_last_anly = False
+    # 强行把下划线行转换
     for d in doc.paragraphs:
         formatUnderline(d)
-        line = d.text.replace("．", ".")
+    for element in doc.element.body:
+        line:str = ""
+        #是否为固定选项部分
+        is_fix_opt:bool = False
+        if element.tag.endswith("p"):
+            d = element.xpath(".//w:t")
+            if d:
+                # formatUnderline(d)
+                line = ''.join([node.text for node in d if node.text])
+        elif element.tag.endswith("tbl"):  # 表格元素 目前表格是可选项
+            for table in doc.tables:
+                for row in table.rows:
+                    line = '\t'.join(cell.text.strip() for cell in row.cells if cell.text)
+                    is_fix_opt = True
         if line == '':
             continue
         if not line.startswith("【"):
             line = "\n        "+line
         line = common_repalce(line)
-        is_new_item = checkState(line)
+        is_new_item = False
+        if is_fix_opt and cur_state == State.main:
+            line = replace_fix_option(line)
+            line = "\n----------------------------------------------" + line + "\n----------------------------------------------"
+        else:
+            is_new_item = checkState(line)
         if cur_state == State.finish:
             break
         if cur_state == State.invaid:
@@ -310,16 +355,21 @@ def HandleFile(file_name: str):
 
         is_last_anly = is_endwith_anly(line)
 
+    last_main_item:MainItem = None
     for item in mainItems:
         main_item: MainItem = item
         main_item.update()
+        if last_main_item :
+            if last_main_item.analysis.get_max_anly_id() != main_item.analysis.get_first_anly_id() - 1:
+                print("解析题号未连续: 上一题最后序号:%d,当前题最先序号:%d, 题干:%s" % ( last_main_item.analysis.get_max_anly_id(),main_item.analysis.get_first_anly_id(), main_item.content))
+
+        last_main_item = main_item
 
     ## 写答案
     file_name = file_name.split(".")[0] + "[上传].docx"
     writeAns(file_name)
     print("----------------结束处理文件----------------------------\n")
     return True
-
 
 def checkState(s: str):
     global cur_state
@@ -335,7 +385,7 @@ def checkState(s: str):
         return is_new_item
     if not is_valid:
         return
-    if s.startswith("#"):
+    if s.startswith("#") or s.startswith("Directions"):
         cur_state = State.main
         return is_new_item
     # 只有题干或选项，才有可能是题目
@@ -367,6 +417,8 @@ const_opt = ["A","B","C","D","E","F"]
 
 def is_endwith_anly(s:str):
     if s.__contains__("故答案为") or s.__contains__("故选") or s.__contains__("所以答案") :
+        return True
+    if s.__contains__("故填"):
         return True
     for cs in const_opt:
         if s.__contains__("故"+cs + "项"):
@@ -527,7 +579,7 @@ def writeAns(fileName):
     if os.path.exists(fileName):
         os.remove(fileName)
     doc.save(fileName)  # 文档保存
-    print("保存完成,题干数量%d,子题目数量%d" % (len(mainItems), allQue))
+    print("保存完成,题干数量%d" % (len(mainItems)))
 
 
 if __name__ == '__main__':
