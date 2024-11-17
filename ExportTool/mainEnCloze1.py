@@ -7,9 +7,12 @@ from docx import Document
 from enum import Enum
 
 from docx.shared import Pt, RGBColor
+from docx.text.paragraph import Paragraph
+from docx.table import _Cell, Table
+
 
 from Tools import getNumPairs, getImportPath, split_options, getContentBeforeNumAndPot, get_first_number_before_dot, \
-    get_max_number, is_start_with_num_and_point
+    get_max_number, is_start_with_num_and_point, iter_block_items, read_table
 
 
 class State(Enum):
@@ -173,7 +176,7 @@ class MainItem(BaseItem):
             self.answer.update()
         if self.analysis :
             self.analysis.update()
-        if not self.content.__contains__("] ( ) ") and not self.content.__contains__("__"):
+        if not self.content.__contains__("]_____") and not self.content.__contains__("__"):
             print("题目里居然没有任何选项: %s" % self.content)
 
     def replacePot(self):
@@ -313,24 +316,31 @@ def HandleFile(file_name: str):
     # 强行把下划线行转换
     for d in doc.paragraphs:
         formatUnderline(d)
-    for element in doc.element.body:
-        line:str = ""
-        #是否为固定选项部分
-        is_fix_opt:bool = False
-        if element.tag.endswith("p"):
-            d = element.xpath(".//w:t")
-            if d:
-                # formatUnderline(d)
-                line = ''.join([node.text for node in d if node.text])
-        elif element.tag.endswith("tbl"):  # 表格元素 目前表格是可选项
-            for table in doc.tables:
-                for row in table.rows:
-                    line = '\t'.join(cell.text.strip() for cell in row.cells if cell.text)
-                    is_fix_opt = True
+    for block in iter_block_items(doc):
+        line: str = ""
+        # 是否为固定选项部分
+        is_fix_opt: bool = False
+        if isinstance(block, Paragraph):
+            line = block.text
+        elif isinstance(block, Table):
+            is_fix_opt = True
+            line = read_table(block)
+    #for element in doc.element.body:
+
+        # if element.tag.endswith("p"):
+        #     d = element.xpath(".//w:t")
+        #     if d:
+        #         # formatUnderline(d)
+        #         line = ''.join([node.text for node in d if node.text])
+        # elif element.tag.endswith("tbl"):  # 表格元素 目前表格是可选项
+        #     for table in doc.tables:
+        #         for row in table.rows:
+        #             line = '\t'.join(cell.text.strip() for cell in row.cells if cell.text)
+        #             is_fix_opt = True
         if line == '':
             continue
         if not line.startswith("【"):
-            line = "\n        "+line
+            line = "\n         "+line
         line = common_repalce(line)
         is_new_item = False
         if is_fix_opt and cur_state == State.main:
@@ -370,6 +380,7 @@ def HandleFile(file_name: str):
     writeAns(file_name)
     print("----------------结束处理文件----------------------------\n")
     return True
+
 
 def checkState(s: str):
     global cur_state
@@ -416,31 +427,40 @@ def checkState(s: str):
 const_opt = ["A","B","C","D","E","F"]
 
 def is_endwith_anly(s:str):
-    if s.__contains__("故答案为") or s.__contains__("故选") or s.__contains__("所以答案") :
+    if contains(s,"故答案为") or contains(s,"故选") or contains(s,"所以答案") :
         return True
-    if s.__contains__("故填"):
-        return True
+
     for cs in const_opt:
-        if s.__contains__("故"+cs + "项"):
+        if contains(s, "故填"+cs):
             return True
-        if s.__contains__("故选"+cs):
+        if contains(s,"故"+cs + "项"):
             return True
-        if s.__contains__("选"+cs+ "项"):
+        if contains(s,"故选"+cs):
             return True
-        if s.__contains__("故此选"+cs):
+        if contains(s,"选"+cs+ "项"):
             return True
-        if s.__contains__("故" + cs + "项正确"):
+        if contains(s,"故此选"+cs):
             return True
-        if s.__contains__("故" + cs + "选项正确"):
+        if contains(s,"故" + cs + "项正确"):
             return True
-        if s.__contains__("答案应是" + cs):
+        if contains(s,"故" + cs + "选项正确"):
             return True
-        if s.__contains__("可知答案为" + cs):
+        if contains(s,"答案应是" + cs):
             return True
-        if s.__contains__("故此题选择" + cs):
+        if contains(s,"可知答案为" + cs):
             return True
-        if s.__contains__("可知" + cs + "选项正确"):
+        if contains(s,"故此题选择" + cs):
             return True
+        if contains(s,"可知" + cs + "选项正确"):
+            return True
+    return False
+
+#只是包含，不是等于
+def contains(s:str,target:str):
+    if  s.__contains__(target) :
+        if not s.__eq__(target):
+            return  True
+        return False
     return False
 
 def update_state(line: str, is_new: bool):

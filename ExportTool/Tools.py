@@ -1,6 +1,13 @@
 import os.path  # 根据内容，获得编号及内容的字典
 import re
 
+import docx
+from docx.document import Document
+from docx.oxml.table import CT_Tbl
+from docx.oxml.text.paragraph import CT_P
+from docx.table import _Cell, Table
+from docx.text.paragraph import Paragraph
+
 
 def split_options(text):
     text = text.replace("．", ".")
@@ -150,6 +157,11 @@ def get_first_number_before_dot(text):
         if rtn == 0:  # 如果是0.几这种，直接去掉
             text = text.replace("0.","")
             return get_first_number_before_dot(text)
+        idx:int = text.find(str(rtn)+".") + len(str(rtn)+".") - 1
+        if idx + 1 < len(text):
+            if text[idx+1].isdigit():
+                text = text.replace( str(rtn) + "." + str(text[idx+1]) , str(rtn) + " ." + str(text[idx+1]) )
+                return get_first_number_before_dot(text)
         return rtn
     else:
         # 如果没有找到匹配项，则返回 None 或者空字符串
@@ -165,8 +177,14 @@ def get_max_number( text: str) :
     last_num:int = from_num
     cur_num:int = from_num
     for i in range(100):
-        if text.find( str(cur_num) + "." ) == -1:
-            return last_num
+        if text.find( str(cur_num) + "." ) == -1 :
+            #下一位不是数字
+            if i < 100 - 1:
+                if not text[i+1].isdigit():
+                    return last_num
+                else:
+                    print("sss")
+            #return last_num
         last_num = cur_num
         cur_num = cur_num + 1
 
@@ -179,6 +197,35 @@ def is_start_with_num_and_point(s:str):
         return False
     else:
         return False
+
+
+def iter_block_items(parent):
+    """
+    Yield each paragraph and table child within *parent*, in document order.
+    Each returned value is an instance of either Table or Paragraph. *parent*
+    would most commonly be a reference to a main Document object, but
+    also works for a _Cell object, which itself can contain paragraphs and tables.
+    """
+    if isinstance(parent, Document):
+        parent_elm = parent.element.body
+    elif isinstance(parent, _Cell):
+        parent_elm = parent._tc
+    else:
+        raise ValueError("something's not right")
+
+    for child in parent_elm.iterchildren():
+        if isinstance(child, CT_P):
+            yield Paragraph(child, parent)
+        elif isinstance(child, CT_Tbl):
+            yield Table(child, parent)
+
+def read_table(table):
+    arr = [[cell.text for cell in row.cells] for row in table.rows]
+    content:str = ""
+    for a in arr:
+        for a1 in a :
+            content = content + a1
+    return content
 
 
 if __name__ == '__main__':
