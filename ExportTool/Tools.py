@@ -177,16 +177,22 @@ def get_max_number( text: str) :
     last_num:int = from_num
     cur_num:int = from_num
     for i in range(100):
-        if text.find( str(cur_num) + "." ) == -1 :
+        num_str:str = str(cur_num) + "."
+        idx:int = text.find( num_str )
+        if idx == -1 :
             #下一位不是数字
-            if i < 100 - 1:
-                if not text[i+1].isdigit():
+            # if i < 100 - 1:
+                #if not text[i+1].isdigit():
                     return last_num
-                else:
-                    print("sss")
+                #else:
+                 #   print("sss")
             #return last_num
-        last_num = cur_num
-        cur_num = cur_num + 1
+        #如果有包含1.2类似的数字，则直接替换
+        if text[idx + len(num_str)].isdigit():
+            text = text.replace(num_str,str(cur_num) + " .")
+        else:
+            last_num = cur_num
+            cur_num = cur_num + 1
 
 def is_start_with_num_and_point(s:str):
     s = s.strip()
