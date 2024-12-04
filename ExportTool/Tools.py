@@ -8,6 +8,28 @@ from docx.oxml.text.paragraph import CT_P
 from docx.table import _Cell, Table
 from docx.text.paragraph import Paragraph
 
+# 定义命名空间
+WORD_NAMESPACE = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+NSMAP = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+
+#段落的背景颜色
+def get_paragraph_shading(paragraph):
+    p = paragraph._element  # 获取段落的底层 XML 元素
+
+    # 查找 w:pPr（段落属性）元素
+    pPr = p.find(f'{WORD_NAMESPACE}pPr')
+
+    if pPr is not None:
+        # 查找 w:shd 元素
+        shd = pPr.find(f'{WORD_NAMESPACE}shd')
+
+        if shd is not None:
+            # 获取填充颜色
+            val = shd.get(f'{WORD_NAMESPACE}fill')
+            if val == 'auto':
+                return None
+            return val
+    return None
 
 def split_options(text):
     text = text.replace("．", ".")

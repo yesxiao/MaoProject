@@ -8,12 +8,13 @@ from docx import Document
 # import xlwt
 # from xlutils.copy import copy
 import xlwt as xlwt
+import xml.etree.ElementTree as ET
 from enum import Enum
 
 from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
 
-from Tools import getNumPairs, getImportPath, split_options
+from Tools import getNumPairs, getImportPath, split_options, get_paragraph_shading
 
 
 class State(Enum):
@@ -210,13 +211,25 @@ def HandleFile(fileName:str):
     # global  curState
     questionRule = re.compile(r"^\d+\s*\.\s*")
     optionROle = re.compile(r"^[A-Z]\s*\.\s*")
+    color:any = None
+    last_color:any = None
     for d in doc.paragraphs:
         formatUnderline(d)
         str = d.text.replace("．", ".")
         if str == '':
             continue
+        tmpValid = isValid
         checkContent(str)
-        str = "\n        " + str
+        if tmpValid == False and isValid :
+            curState = State.main
+            continue
+        color = get_paragraph_shading(d)
+        if color is None and last_color:
+            curState = State.main
+            curComprehensItem = None
+        last_color = color
+        if curState == State.main:
+            str = "\n        " + str
         if curState == State.finish :
             break
         if curState == State.invaid:
