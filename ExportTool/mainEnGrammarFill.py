@@ -428,12 +428,10 @@ def checkState(s: str):
 const_opt = ["A","B","C","D","E","F"]
 
 def is_endwith_anly(s:str):
-    if contains(s,"故答案为") or contains(s,"故选") or contains(s,"所以答案") :
+    if contains(s,"故答案为") or contains(s,"故选") or contains(s,"所以答案") or contains(s,"故填") :
         return True
 
     for cs in const_opt:
-        if contains(s, "故填"+cs):
-            return True
         if contains(s,"故"+cs + "项"):
             return True
         if contains(s,"故选"+cs):
