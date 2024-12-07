@@ -10,9 +10,8 @@ from docx.shared import Pt, RGBColor
 from docx.text.paragraph import Paragraph
 from docx.table import _Cell, Table
 
-
 from Tools import getNumPairs, getImportPath, split_options, getContentBeforeNumAndPot, get_first_number_before_dot, \
-    get_max_number, is_start_with_num_and_point, iter_block_items, read_table
+    get_max_number, is_start_with_num_and_point, iter_block_items, read_table, get_paragraph_shading
 
 
 class State(Enum):
@@ -24,7 +23,8 @@ class State(Enum):
     difficulty = 6  # 难度
     point = 7  # 知识点
     anly = 8  # 解析或导语
-    dian_jing = 9 # 点晴
+    director = 9 # 导语
+    dian_jing = 10  # 点晴
     finish = 100
 
 
@@ -50,19 +50,20 @@ class OptionItem(BaseItem):
         self.opt_arr = []
 
     def update(self):
-        opt_id_str:str = self.content.split(".")[0]
+        opt_id_str: str = self.content.split(".")[0]
         self.opt_id = int(opt_id_str)
         self.opt_arr = split_options(self.content)
 
-    def getResult(self,score:int ):
-        r:str = "\n%d." % self.opt_id
-        isFirst:bool = True
+    def getResult(self, score: int):
+        r: str = "\n%d." % self.opt_id
+        isFirst: bool = True
         for a in self.opt_arr:
             r = r + "\n" + str(a).strip()
             if isFirst:
                 r = r + " =>" + str(score)
             isFirst = False
         return r
+
 
 #知识点
 class KnowledgePointItem(BaseItem):
@@ -76,22 +77,22 @@ class AnswerItem(BaseItem):
     def __init__(self):
         super().__init__()
         self._answer_str = None
-        self._total_num:int = 0
+        self._total_num: int = 0
 
     def update(self):
         self._answer_str = ""
-        self.content = self.content.replace("．",".")
-        from_id:int = get_first_number_before_dot(self.content)
-        to_id:int = get_max_number(self.content)
+        self.content = self.content.replace("．", ".")
+        from_id: int = get_first_number_before_dot(self.content)
+        to_id: int = get_max_number(self.content)
         self._total_num = to_id - from_id + 1
-        for i in range(to_id-from_id+1):
-            tmp_id:int = from_id + i
-            r:str = getNumPairs(tmp_id, self.content, None, to_id)
+        for i in range(to_id - from_id + 1):
+            tmp_id: int = from_id + i
+            r: str = getNumPairs(tmp_id, self.content, None, to_id)
             if self._answer_str != "":
                 self._answer_str = self._answer_str + ";" + r.strip()
             else:
-                self._answer_str =  self._answer_str + r.strip()
-        self._answer_str = self._answer_str.replace("/","|")
+                self._answer_str = self._answer_str + r.strip()
+        self._answer_str = self._answer_str.replace("/", "|")
 
     def get_number(self):
         return self._total_num
@@ -100,14 +101,13 @@ class AnswerItem(BaseItem):
         return self._answer_str
 
 
-
 #解析
 class AnalysisItem(BaseItem):
 
     def __init__(self):
         super().__init__()
         self.desc = None
-        self.dian_jing:str = ""
+        self.dian_jing: str = ""
         self.anlyItems = []
         self._max_anly_id = 0
         self._first_anly_id = 0
@@ -119,7 +119,7 @@ class AnalysisItem(BaseItem):
         if first_id is None:
             print("解析中没有题号,解析内容:%s" % self.content)
             return
-        if first_id == 0 :
+        if first_id == 0:
             print("解析中有疑似有0.几的数字，可以尝试修改数字")
         if self.content.__contains__("【点睛】"):
             arr = self.content.split("【点睛】")
@@ -133,7 +133,7 @@ class AnalysisItem(BaseItem):
             if anly is None or anly == "":
                 print("解析内容为空:%s" % self.content)
                 return
-            self.anlyItems.append( str(first_id + i) + ":" + anly)
+            self.anlyItems.append(str(first_id + i) + ":" + anly)
         self._max_anly_id = max_id
         self._first_anly_id = first_id
 
@@ -172,47 +172,49 @@ class MainItem(BaseItem):
         if self.main_knowledge_point:
             self.main_knowledge_point.update()
         if self.answer is None:
-            print("请确定井号位置，题干为:%s" % self.content )
+            print("请确定井号位置，题干为:%s" % self.content)
         else:
             self.answer.update()
-        if self.analysis :
+        if self.analysis:
             self.analysis.update()
         if not self.content.__contains__("]_____") and not self.content.__contains__("__"):
             print("题目里居然没有任何选项: %s" % self.content)
 
     def replacePot(self):
-        arr = ["A","B","C","D","E","F"]
+        arr = ["A", "B", "C", "D", "E", "F"]
         for a in arr:
-            tmp:str = "" + a + "."
+            tmp: str = "" + a + "."
             if self.content.__contains__(tmp):
-                new_str:str = " " + a + " ."
-                self.content = self.content.replace( tmp , new_str)
+                new_str: str = " " + a + " ."
+                self.content = self.content.replace(tmp, new_str)
 
-
-    def getResult(self,id:int):
-        r:str = "%d.\n" % id
+    def getResult(self, id: int):
+        r: str = "%d.\n" % id
         if self.difficulty:
             r = r + self.difficulty.content
         if self.origin:
-            r = r + "\n" + self.origin.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">")
+            r = r + "\n" + self.origin.content.replace("（", "<").replace("）", ">").replace("(", "<").replace(")", ">")
         if self.main_knowledge_point:
-            r = r + "\n" + self.main_knowledge_point.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">") + "\n"
-        self.content = self.content.replace("#","")
+            r = r + "\n" + self.main_knowledge_point.content.replace("（", "<").replace("）", ">").replace("(",
+                                                                                                         "<").replace(
+                ")", ">") + "\n"
+        self.content = self.content.replace("#", "")
         r = r + self.content
-        score:int = 2
+        score: int = 2
         for o in self.options:
             r = r + o.getResult(score) + "\n"
-        if self.answer :
+        if self.answer:
             r = r + "\n答案:" + self.answer.getResult() + "\n"
-        r = r + "分数:" + str(score*len(self.options)) + "\n"
+        r = r + "分数:" + str(score * len(self.options)) + "\n"
         r = r + "分类:完形填空\n"
         # r = r + "标签:" + self.main_knowledge_point.content.replace("【知识点】","") + "\n"
         if self.analysis is None:
-            print("无解析: %s " % self.content )
+            print("无解析: %s " % self.content)
         else:
-            r = r +  "解析:" + self.analysis.getResult() + "\n\n\n"
+            r = r + "解析:" + self.analysis.getResult() + "\n\n\n"
             if self.answer.get_number() != len(self.analysis.anlyItems):
-                print("选项和解析数量不匹配, id = %d , 选项:%d个 , 解析:%d ,  题干:%s" % (id, len(self.options) ,len(self.analysis.anlyItems), self.content))
+                print("选项和解析数量不匹配, id = %d , 选项:%d个 , 解析:%d ,  题干:%s" % (
+                id, self.answer.get_number(), len(self.analysis.anlyItems), self.content))
 
         return r
 
@@ -226,6 +228,9 @@ class MainItem(BaseItem):
         self.main_knowledge_point = item
 
     def set_analysis(self, item: AnalysisItem):
+        if self.analysis is not None:
+            print("该题重复出现\"解析\":%s" % (self.analysis.content ) )
+            return
         self.analysis = item
 
 
@@ -244,9 +249,9 @@ cur_knowledge_point: KnowledgePointItem = None
 #解析
 cur_analysis_item: AnalysisItem = None
 #难度
-cur_difficulty_item:BaseItem = None
+cur_difficulty_item: BaseItem = None
 #来源
-cur_original_item:BaseItem = None
+cur_original_item: BaseItem = None
 
 
 def main():
@@ -263,28 +268,32 @@ def main():
         HandleFile(fileName)
 
 
-def common_repalce(line:str):
-    line = line.replace( "答案:", "【答案】").replace("．",".")
-    line = line.replace("【导语】","【解析】").replace("【导读】","【解析】").replace("【分析】","【解析】").replace("A.M.","AM").replace("A.D.","AD").replace("P.M.","PM")
+def common_repalce(line: str):
+    line = line.replace("答案:", "【答案】").replace("．", ".")
+    line = (line.replace("【导读】", "【解析】").
+            replace("【分析】", "【解析】").replace("A.M.","AM").replace(
+        "A.D.", "AD").replace("P.M.", "PM").replace("【详解】","【解析】"))
     return line
 
-def replace_fix_option(line:str):
+
+def replace_fix_option(line: str):
     for i in range(26):
-        letter_num:str = str(chr(i+64+1))
-        line = line.replace(letter_num + ".","(" + letter_num + ")").replace(letter_num+"．","(" + letter_num + ")")
+        letter_num: str = str(chr(i + 64 + 1))
+        line = line.replace(letter_num + ".", "(" + letter_num + ")").replace(letter_num + "．", "(" + letter_num + ")")
     return line
 
-def formatUnderline(d:docx.text.paragraph.Paragraph):
-    for item in d.runs :
-        if item.underline :
-            s:str = item.text.strip()
-            if s.isdigit():
 
-                item.text = "[%s]_____" %  s
+def formatUnderline(d: docx.text.paragraph.Paragraph):
+    for item in d.runs:
+        if item.underline:
+            s: str = item.text.strip()
+            if s.isdigit():
+                item.text = "[%s]_____" % s
                 item.underline = False
                 #print(item.text)
                 # item.text = item.text.replace(" ","_")
                 # item.text = "____________"
+
 
 def HandleFile(file_name: str):
     global cur_state, is_valid, mainItems, cur_main_item, cur_opt_item, cur_answer_item, cur_knowledge_point, cur_analysis_item
@@ -307,41 +316,32 @@ def HandleFile(file_name: str):
     doc = getDoc(file_name)
     print("----------------开始处理文件 %s ------------" % file_name)
     global category
-    global type,is_anly_over
+    global type, is_anly_over
     #上一行是不是解析结尾
-    is_last_anly_over:bool = False
+    is_last_anly_over: bool = False
     name, category, type, mark = AnalyzeFileName(file_name)
-    is_last_start:bool = False
+    is_last_start: bool = False
     first_num = None
     is_last_anly = False
     # 强行把下划线行转换
     for d in doc.paragraphs:
         formatUnderline(d)
+    last_color = None
     for block in iter_block_items(doc):
         line: str = ""
         # 是否为固定选项部分
         is_fix_opt: bool = False
+        para = None
         if isinstance(block, Paragraph):
             line = block.text
+            para = block
         elif isinstance(block, Table):
             is_fix_opt = True
             line = read_table(block)
-    #for element in doc.element.body:
-
-        # if element.tag.endswith("p"):
-        #     d = element.xpath(".//w:t")
-        #     if d:
-        #         # formatUnderline(d)
-        #         line = ''.join([node.text for node in d if node.text])
-        # elif element.tag.endswith("tbl"):  # 表格元素 目前表格是可选项
-        #     for table in doc.tables:
-        #         for row in table.rows:
-        #             line = '\t'.join(cell.text.strip() for cell in row.cells if cell.text)
-        #             is_fix_opt = True
         if line == '':
             continue
         if not line.startswith("【"):
-            line = "\n         "+line
+            line = "\n         " + line
         line = common_repalce(line)
         is_new_item = False
         if is_fix_opt and cur_state == State.main:
@@ -349,6 +349,12 @@ def HandleFile(file_name: str):
             line = "\n----------------------------------------------" + line + "\n----------------------------------------------"
         else:
             is_new_item = checkState(line)
+        if para:
+            color = get_paragraph_shading(para)
+            if color is None and last_color:
+                cur_state = State.main
+                is_new_item = True
+            last_color = color
         if cur_state == State.finish:
             break
         if cur_state == State.invaid:
@@ -359,21 +365,31 @@ def HandleFile(file_name: str):
                 cur_state = State.main
         #如果没有识别出主题，但是上一次
         first_num = is_start_with_num_and_point(line)
-        if not is_new_item and ( cur_state == State.anly or cur_state == State.dian_jing ) and not first_num and is_last_anly:
+        if not is_new_item and (
+                cur_state == State.anly or cur_state == State.dian_jing) and not first_num and is_last_anly:
             cur_state = State.main
             cur_main_item = None
         update_state(line, is_new_item)
 
         is_last_anly = is_endwith_anly(line)
 
-    last_main_item:MainItem = None
+    last_main_item: MainItem = None
     for item in mainItems:
         main_item: MainItem = item
         main_item.update()
-        if last_main_item :
-            if last_main_item.analysis.get_max_anly_id() != main_item.analysis.get_first_anly_id() - 1:
-                print("解析题号未连续: 上一题最后序号:%d,当前题最先序号:%d, 题干:%s" % ( last_main_item.analysis.get_max_anly_id(),main_item.analysis.get_first_anly_id(), main_item.content))
-
+        if last_main_item:
+            if last_main_item.analysis is None:
+                print("题目中无解析,题干为:%s" % last_main_item.content)
+            if main_item.analysis is None:
+                print("题目中无解析,题干为:%s" % main_item.content)
+            else:
+                try:
+                    if last_main_item.analysis.get_max_anly_id() != main_item.analysis.get_first_anly_id() - 1:
+                        print("解析题号未连续: 上一题最后序号:%d,当前题最先序号:%d, 题干:%s" % (
+                        last_main_item.analysis.get_max_anly_id(), main_item.analysis.get_first_anly_id(),
+                        main_item.content))
+                except:
+                    print("解析报错:%s" % main_item.content)
         last_main_item = main_item
 
     ## 写答案
@@ -397,7 +413,7 @@ def checkState(s: str):
         return is_new_item
     if not is_valid:
         return
-    if s.startswith("#") or s.startswith("Directions") or s.startswith("语法填空") or s.startswith("阅读下面短文"):
+    if s.startswith("#") or s.startswith("Directions") or s.startswith("语法填空") or s.startswith("阅读下面短文") or s.startswith("DIRECTIONS"):
         cur_state = State.main
         return is_new_item
     # 只有题干或选项，才有可能是题目
@@ -413,6 +429,9 @@ def checkState(s: str):
     if cur_state.value <= State.anly.value and s.find("【解析】") != -1:
         cur_state = State.anly
         return is_new_item
+    if cur_state.value <= State.director.value and s.find("【导语】") != -1:
+        cur_state = State.director
+        return is_new_item
     if s.find("【点睛】") != -1:
         cur_state = State.dian_jing
         return is_new_item
@@ -425,47 +444,51 @@ def checkState(s: str):
     is_new_item = False
     return is_new_item
 
-const_opt = ["A","B","C","D","E","F"]
 
-def is_endwith_anly(s:str):
-    if contains(s,"故答案为") or contains(s,"故选") or contains(s,"所以答案") or contains(s,"故填") :
+const_opt = ["A", "B", "C", "D", "E", "F"]
+
+
+def is_endwith_anly(s: str):
+    if contains(s, "故答案为") or contains(s, "故选") or contains(s, "所以答案") or contains(s, "故填"):
         return True
 
     for cs in const_opt:
-        if contains(s,"故"+cs + "项"):
+        if contains(s, "故" + cs + "项"):
             return True
-        if contains(s,"故选"+cs):
+        if contains(s, "故选" + cs):
             return True
-        if contains(s,"选"+cs+ "项"):
+        if contains(s, "选" + cs + "项"):
             return True
-        if contains(s,"故此选"+cs):
+        if contains(s, "故此选" + cs):
             return True
-        if contains(s,"故" + cs + "项正确"):
+        if contains(s, "故" + cs + "项正确"):
             return True
-        if contains(s,"故" + cs + "选项正确"):
+        if contains(s, "故" + cs + "选项正确"):
             return True
-        if contains(s,"答案应是" + cs):
+        if contains(s, "答案应是" + cs):
             return True
-        if contains(s,"可知答案为" + cs):
+        if contains(s, "可知答案为" + cs):
             return True
-        if contains(s,"故此题选择" + cs):
+        if contains(s, "故此题选择" + cs):
             return True
-        if contains(s,"可知" + cs + "选项正确"):
+        if contains(s, "可知" + cs + "选项正确"):
             return True
     return False
 
+
 #只是包含，不是等于
-def contains(s:str,target:str):
-    if  s.__contains__(target) :
+def contains(s: str, target: str):
+    if s.__contains__(target):
         if not s.__eq__(target):
-            return  True
+            return True
         return False
     return False
+
 
 def update_state(line: str, is_new: bool):
     global cur_state
     global is_valid, cur_main_item, mainItems, cur_opt_item, cur_answer_item, cur_knowledge_point, \
-        cur_analysis_item,cur_difficulty_item,cur_original_item
+        cur_analysis_item, cur_difficulty_item, cur_original_item
 
     if not is_valid:
         return
@@ -474,7 +497,14 @@ def update_state(line: str, is_new: bool):
             if cur_main_item is None or is_new:
                 cur_main_item = MainItem()
                 mainItems.append(cur_main_item)
+                cur_analysis_item = None
+                cur_difficulty_item = None
+                cur_original_item = None
+                cur_knowledge_point = None
+                cur_answer_item = None
+                cur_opt_item = None
             cur_main_item.addContent(line)
+
         case State.opt:  #选项
             if cur_main_item is None:
                 print("题干里面是不是没有. 内容: %s" % line)
@@ -496,7 +526,7 @@ def update_state(line: str, is_new: bool):
                 cur_main_item.add_knowledge_point(cur_knowledge_point)
             cur_knowledge_point.addContent(line)
         case State.anly:
-            if is_new:
+            if not cur_analysis_item:
                 cur_analysis_item = AnalysisItem()
                 cur_main_item.set_analysis(cur_analysis_item)
             cur_analysis_item.addContent(line)
@@ -504,7 +534,12 @@ def update_state(line: str, is_new: bool):
             if not cur_analysis_item:
                 cur_analysis_item = AnalysisItem()
                 cur_main_item.set_analysis(cur_analysis_item)
-            cur_analysis_item.addContent("\n"+line)
+            cur_analysis_item.addContent("\n" + line)
+        case State.director:
+            if not cur_analysis_item:
+                cur_analysis_item = AnalysisItem()
+                cur_main_item.set_analysis(cur_analysis_item)
+            cur_analysis_item.addContent("\n" + line)
         case State.difficulty:
             if is_new:
                 cur_difficulty_item = BaseItem()
@@ -573,9 +608,9 @@ def writeAns(fileName):
     doc = Document()  # 创建新文档
     para1 = doc.add_paragraph()
     content: str = ""
-    last_que_id:int = 0
+    last_que_id: int = 0
     allQue: int = 0
-    main_id:int = 1
+    main_id: int = 1
     for main_item in mainItems:
         r = main_item.getResult(main_id)
         content = content + r + "\n\n"
@@ -583,7 +618,9 @@ def writeAns(fileName):
         allQue = allQue + len(main_item.options)
         for o in main_item.options:
             if last_que_id + 1 != o.opt_id:
-                print("子题序号不连续: 上一题号:%d,当前题号:%d，如果题号是连续的，请确认是不是有类似【点睛】的内容无法识别结束 . 选项为:%s" % (last_que_id,o.opt_id,o.content) )
+                print(
+                    "子题序号不连续: 上一题号:%d,当前题号:%d，如果题号是连续的，请确认是不是有类似【点睛】的内容无法识别结束 . 选项为:%s" % (
+                    last_que_id, o.opt_id, o.content))
             last_que_id = o.opt_id
 
     run_2 = para1.add_run(content)  # 以add_run的方式追加内容，方便后续格式调整
