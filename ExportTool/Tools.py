@@ -211,7 +211,11 @@ def get_max_number( text: str) :
             #return last_num
         #如果有包含1.2类似的数字，则直接替换
         if text[idx + len(num_str)].isdigit():
-            text = text.replace(num_str,str(cur_num) + " .")
+            # 点先替换成空格
+            str_list = list(text)
+            str_list.insert(idx + (len)(num_str) - 1,' ')
+            text = "".join(str_list)
+            #text = text.replace(num_str,str(cur_num) + " .")
         else:
             last_num = cur_num
             cur_num = cur_num + 1
@@ -257,7 +261,9 @@ def read_table(table):
 
 
 if __name__ == '__main__':
-    test: str = (r"【导语】本文是一篇说明文。文章说明了在语言学习的中、高级阶段的单词学习法。"
-                 r"31.考查动词词义辨析。句意：然而，功能性33.语言的熟练，需要掌握相当多")
+    test: str = ('''51．考查名词。句意：植物性牛奶多年来越来越受欢迎，但不同牛奶和牛奶替代品的营养成分不同，品牌之间也存在分歧。分析可知，空前是介词，所以空处应填名词，根据后文“The global dairy alternatives market is 　2　to grow from $22.25 billion in 2021 to $53.97 billion in 2028”可知，牛奶市场越来越大，所以空处应选popularity意为“受欢迎”，符合句意。故选H项。r"
+                 52．考查动词。句意：根据《财富》商业观察的一份报告，全球乳制品替代品市场预计将从2021年的222.5亿美元增长到2028年的539.7亿美元。根据后文中“to $53.97 billion in 2028”，可推测，现在还未到2028年，所以应该是表预测，所以应填project意为“预测”，又本句主语是market与project之间是被动关系，应用被动语态，空前已有be动词is，空处用project的过去分词。故选F项
+53．考查形容词。句意：2022年2月，世界上第一款土豆牛奶在英国推出，它标榜自己是“市场上最可持续的植物性乳制品替代品”。根据空前的the most可知空处应填形容词，表示“最......的”，此处分析选项，可知应在A，C，E，I中选，带入句子中，可知sustainable意为“可持续的”符合句意。故选C项。''')
+    test = test.replace("．",".")
     opts = get_max_number(test)
     print(opts)
