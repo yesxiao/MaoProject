@@ -350,6 +350,8 @@ def HandleFile(file_name: str):
             line = "\n----------------------------------------------" + line + "\n----------------------------------------------"
         else:
             is_new_item,is_main_from_startwith = checkState(line)
+        if cur_state == State.finish:
+            break
         if para:
             color = get_paragraph_shading(para)
             if color and is_main_from_startwith:
@@ -358,8 +360,7 @@ def HandleFile(file_name: str):
                 cur_state = State.main
                 is_new_item = True
             last_color = color
-        if cur_state == State.finish:
-            break
+
         if cur_state == State.invaid:
             if not is_last_start:
                 is_last_start = line.__contains__("//题目开始")
