@@ -172,7 +172,7 @@ class MainItem(BaseItem):
         if self.main_knowledge_point:
             self.main_knowledge_point.update()
         if self.answer is None:
-            print("请确定井号位置，题干为:%s" % self.content)
+            print("答案为空，题干为:%s" % self.content)
         else:
             self.answer.update()
         if self.analysis:
@@ -344,13 +344,16 @@ def HandleFile(file_name: str):
             line = "\n         " + line
         line = common_repalce(line)
         is_new_item = False
+        is_main_from_startwith = False
         if is_fix_opt and cur_state == State.main:
             line = replace_fix_option(line)
             line = "\n----------------------------------------------" + line + "\n----------------------------------------------"
         else:
-            is_new_item = checkState(line)
+            is_new_item,is_main_from_startwith = checkState(line)
         if para:
             color = get_paragraph_shading(para)
+            if color and is_main_from_startwith:
+                print("有背景颜色，又有题干开始标识 。 内容为:%s" % line )
             if color is None and last_color:
                 cur_state = State.main
                 is_new_item = True
@@ -365,10 +368,10 @@ def HandleFile(file_name: str):
                 cur_state = State.main
         #如果没有识别出主题，但是上一次
         first_num = is_start_with_num_and_point(line)
-        if not is_new_item and (
-                cur_state == State.anly or cur_state == State.dian_jing) and not first_num and is_last_anly:
-            cur_state = State.main
-            cur_main_item = None
+        # if not is_new_item and (
+        #         cur_state == State.anly or cur_state == State.dian_jing) and not first_num and is_last_anly:
+        #     cur_state = State.main
+        #     cur_main_item = None
         update_state(line, is_new_item)
 
         is_last_anly = is_endwith_anly(line)
@@ -407,42 +410,42 @@ def checkState(s: str):
     s = s.strip()
     if s.find("//题目开始") != -1:
         is_valid = True
-        return is_new_item
+        return is_new_item,False
     if s.find("//题目结束") != -1:
         cur_state = State.finish
-        return is_new_item
+        return is_new_item,False
     if not is_valid:
-        return
+        return is_new_item,False
     if s.startswith("#") or s.startswith("Directions") or s.startswith("语法填空") or s.startswith("阅读下面短文") or s.startswith("DIRECTIONS"):
         cur_state = State.main
-        return is_new_item
+        return is_new_item,True
     # 只有题干或选项，才有可能是题目
     if cur_state.value <= State.opt.value and is_option(s):  # 选项
         cur_state = State.opt
-        return is_new_item
+        return is_new_item,False
     if cur_state.value <= State.answer.value and s.find("【答案】") != -1:
         cur_state = State.answer
-        return is_new_item
+        return is_new_item,False
     if cur_state.value <= State.point.value and s.find("【知识点】") != -1:
         cur_state = State.point
-        return is_new_item
+        return is_new_item,False
     if cur_state.value <= State.anly.value and s.find("【解析】") != -1:
         cur_state = State.anly
-        return is_new_item
+        return is_new_item,False
     if cur_state.value <= State.director.value and s.find("【导语】") != -1:
         cur_state = State.director
-        return is_new_item
+        return is_new_item,False
     if s.find("【点睛】") != -1:
         cur_state = State.dian_jing
-        return is_new_item
+        return is_new_item,False
     if s.find("【难度】") != -1:
         cur_state = State.difficulty
-        return is_new_item
+        return is_new_item,False
     if s.find("【来源】") != -1:
         cur_state = State.origin
-        return is_new_item
+        return is_new_item,False
     is_new_item = False
-    return is_new_item
+    return is_new_item,False
 
 
 const_opt = ["A", "B", "C", "D", "E", "F"]

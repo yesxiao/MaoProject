@@ -13,7 +13,8 @@ from enum import Enum
 from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
 
-from Tools import getNumPairs, getImportPath, isReadingMain, split_options, get_first_number_before_dot, get_max_number
+from Tools import getNumPairs, getImportPath, isReadingMain, split_options, get_first_number_before_dot, get_max_number, \
+    get_paragraph_shading
 
 
 class State(Enum):
@@ -197,6 +198,7 @@ isValid = False
 comprehensionArr = []
 curComprehensItem:ComprehensionData = None
 curQuestionDataItem:QuestionData = None
+last_color = None
 
 def main():
     if len(sys.argv) > 1:
@@ -262,7 +264,8 @@ def HandleFile(fileName:str):
         str = replaceCommon(d.text)
         if str == '':
             continue
-        checkContent(str)
+        if not checkContent(str,d):
+            continue
         if curState == State.finish :
             break
         if curState == State.invaid:
@@ -277,36 +280,47 @@ def HandleFile(fileName:str):
     print("----------------结束处理文件----------------------------\n")
     return True
 
-def checkContent(s:str):
+def checkContent(s:str,d):
     global curState
     global isValid
     global curComprehensItem
     global  curQuestionDataItem
+    global last_color
     if s.find("//题目开始") != -1:
         isValid = True
-        return
+        curComprehensItem = None
+        curQuestionDataItem = None
+        curState = State.main
+        return False
     if s.find("//题目结束") != -1:
         isValid = False
         curState = State.finish
-        return
-    if isValid and isReadingMain(s):
+        return False
+    color = get_paragraph_shading(d)
+    is_main_start = False
+    if last_color and not color:
+        is_main_start = True
+    last_color = color
+    if isValid and ( is_main_start or isReadingMain(s)) :
         s = s.strip()
         curComprehensItem = None
         curQuestionDataItem = None
         curState = State.main
-        return
+        return True
     if isValid:
         # 只有题干或选项，才有可能是题目
         if ( curState == State.main or curState == State.opt ) and isQustion(s): # 题目
             curQuestionDataItem = None
             curState = State.que
-            return
+            return True
         if ( curState == State.que or curState == State.opt ) and isOption(s):  # 选项
             curState = State.opt
-            return
+            return True
         if s.find("【答案】") != -1 or s.find("【知识点】") != -1 or s.find("【解析】") != -1 :
             curState = State.answer
-            return
+            return True
+        return True
+    return False
 
 def updateState(s:str):
     global curState
