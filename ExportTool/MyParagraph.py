@@ -76,6 +76,11 @@ class ParagraphsAnlyse:
         self.contents.sort(key=lambda c: c.index)
         self.color = get_paragraph_shading(paragraph)
 
+class DocAnalyse:
+
+    def __init__(self,doc_path:str):
+        self.paragraph_arr, self.unpack_dir ,self.doc = read_doc(doc_path)
+
 def unpack_docx_file(file_name:str):
     zip_path: str = file_name.replace(".docx",".zip")
     unpack_dir:str = file_name.replace(".docx","")
@@ -119,18 +124,18 @@ def read_doc(doc_path:str):
     for para in doc.paragraphs:
         p = ParagraphsAnlyse(para, id2path)
         plist.append(p)
-    return plist,unpack_dir
+    return plist,unpack_dir,doc
 
 #test
 if __name__ == '__main__':
     doc_path = r"D:\猫猫\0905\肖鲲测试\【高中地理】03地球上的大气（06气压带）风带与气候）（02）101~200_选择题_1_1.docx"
-    graagraphs_arr,unpack_dir = read_doc(doc_path)
     save_doc_path = r"D:\猫猫\0905\肖鲲测试\【高中地理】03地球上的大气（06气压带）风带与气候）（02）101~200_选择题_1_1[save].docx"
-    doc = Document()
+    doc_analyse = DocAnalyse(doc_path)
+    paragraphs_arr = doc_analyse.paragraph_arr
+    unpack_dir = doc_analyse.unpack_dir
+    doc = doc_analyse.doc
     from docx.oxml.ns import qn
-
-
-    for p in graagraphs_arr:
+    for p in paragraphs_arr:
         pa = doc.add_paragraph()
         for c in p.contents:
             run = pa.add_run()
