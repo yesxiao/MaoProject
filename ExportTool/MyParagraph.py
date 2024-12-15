@@ -52,6 +52,8 @@ class ParagraphsAnlyse:
         self.paragraph = paragraph ;
         paragraphXml: str = paragraph._element.xml
         arr_text = find_all(paragraphXml, "<w:t>", "</w:t>")
+        for a in arr_text:
+            a.content = a.content.replace("．", ".")
         self.contents = arr_text
         if self.contents is None:
             self.contents = []
@@ -79,7 +81,7 @@ class ParagraphsAnlyse:
 class DocAnalyse:
 
     def __init__(self,doc_path:str):
-        self.paragraph_arr, self.unpack_dir ,self.doc = read_doc(doc_path)
+        self.is_valid ,self.paragraph_arr, self.unpack_dir ,self.doc = read_doc(doc_path)
 
 def unpack_docx_file(file_name:str):
     zip_path: str = file_name.replace(".docx",".zip")
@@ -117,6 +119,9 @@ def read_img_relation(unpack_dir,doc):
 
 
 def read_doc(doc_path:str):
+    if not os.path.exists(doc_path):
+        print( "文件不存在%s" % doc_path)
+        return False
     doc = Document(doc_path)
     unpack_dir = unpack_docx_file(doc_path)
     id2path = read_img_relation(unpack_dir,doc)
@@ -124,7 +129,7 @@ def read_doc(doc_path:str):
     for para in doc.paragraphs:
         p = ParagraphsAnlyse(para, id2path)
         plist.append(p)
-    return plist,unpack_dir,doc
+    return True,plist,unpack_dir,doc
 
 #test
 if __name__ == '__main__':
