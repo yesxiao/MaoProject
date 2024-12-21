@@ -14,6 +14,7 @@ from Tools import get_paragraph_shading
 def find_all(content:str,start:str,end:str):
     data_list = []
     find_idx = 0
+    content = content.replace("．",".")
     while True:
         index_start = content.find(start,find_idx)
         index_end = -1
@@ -51,7 +52,7 @@ class ParagraphsAnlyse:
     def __init__(self,paragraph:any,id2path:any):
         self.paragraph = paragraph ;
         paragraphXml: str = paragraph._element.xml
-        arr_text = find_all(paragraphXml, "<w:t>", "</w:t>")
+        arr_text:[ContentItem] = find_all(paragraphXml, "<w:t>", "</w:t>")
         for a in arr_text:
             a.content = a.content.replace("．", ".")
         self.contents = arr_text
