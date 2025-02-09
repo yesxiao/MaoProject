@@ -23,6 +23,7 @@ def parse_doc(doc:MyParagraph.DocAnalyse,start_str:[str]):
         if p.paragraph.text.startswith("//题目结束"):
             break
         start_num: int = check_start_with_num(p)
+        in_color = p.color and last_color
         if not p.color and last_color:
             state = "main"
             data = {}
@@ -35,7 +36,7 @@ def parse_doc(doc:MyParagraph.DocAnalyse,start_str:[str]):
                 state = "qus" + str(start_num)
                 que_num = start_num
         else:
-            if start_num == 0 : #不是数字开头
+            if in_color or start_num == 0 : #不是数字开头
                 #选项
                 is_valid_state:bool = False
                 for s in start_str:
@@ -43,7 +44,7 @@ def parse_doc(doc:MyParagraph.DocAnalyse,start_str:[str]):
                         state = s
                         is_valid_state = True
                         break
-                if not is_valid_state and ("qus" + str(que_num) in data) and len(split_options(p.paragraph.text)) > 0 :
+                if not in_color and not is_valid_state and ("qus" + str(que_num) in data) and len(split_options(p.paragraph.text)) > 0 :
                     state = "option" + str(que_num)
             else:
                 #问题
