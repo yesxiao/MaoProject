@@ -168,7 +168,7 @@ class ComprehensionData:
         self.come = self.come + s
 
     def format_all(self):
-
+        self.main = self.main.replace("."," .")
         arr = ["A","B","C","D","E","F","G","H"]
         last = False
         for a in arr:
