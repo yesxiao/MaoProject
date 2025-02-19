@@ -16,4 +16,6 @@ mainEncloze1.py  选单词填空 (非选择，纯填空，如小猫钓鱼)
 
 mainEnGrammarFill.py 高一二三语法填空(语法填空)
 
+Fill4outOf6.py 填空题 6选4
+
 输入目录直接在  说明.txt中修改
