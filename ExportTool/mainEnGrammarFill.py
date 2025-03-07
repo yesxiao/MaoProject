@@ -98,7 +98,8 @@ class AnswerItem(BaseItem):
         return self._total_num
 
     def getResult(self):
-        return self._answer_str
+        arr:[] = self._answer_str.split(";")
+        return self._answer_str,len(arr)
 
 
 #解析
@@ -200,12 +201,14 @@ class MainItem(BaseItem):
                 ")", ">") + "\n"
         self.content = self.content.replace("#", "")
         r = r + self.content
-        score: int = 2
+        score: int = 1
         for o in self.options:
             r = r + o.getResult(score) + "\n"
+        option_len:int = 0
         if self.answer:
-            r = r + "\n答案:" + self.answer.getResult() + "\n"
-        r = r + "分数:" + str(score * len(self.options)) + "\n"
+            result_str,option_len=self.answer.getResult()
+            r = r + "\n答案:" + result_str + "\n"
+        r = r + "分数:" + str(score * option_len) + "\n"
         r = r + "分类:完形填空\n"
         # r = r + "标签:" + self.main_knowledge_point.content.replace("【知识点】","") + "\n"
         if self.analysis is None:
