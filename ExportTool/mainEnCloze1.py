@@ -95,8 +95,13 @@ class AnswerItem(BaseItem):
     def get_number(self):
         return self._total_num
 
-    def getResult(self):
+    def getResult(self,score:int):
         arr:[] = self._answer_str.split(";")
+        arr_str:[] = []
+        for i in range(len(arr)):
+            letter = chr(64+i+1)
+            arr_str.append(letter+"."+arr[i]+"=>"+str(score))
+        self._answer_str = "\n".join(arr_str)
         return self._answer_str,len(arr)
 
 
@@ -204,8 +209,8 @@ class MainItem(BaseItem):
             r = r + o.getResult(score) + "\n"
         option_len:int = 0
         if self.answer :
-            a,option_len = self.answer.getResult()
-            r = r + "\n答案:" + a + "\n"
+            a,option_len = self.answer.getResult(score)
+            r = r + "\n"+ a+"\n答案:\n"
         r = r + "分数:" + str(score*option_len) + "\n"
         r = r + "分类:完形填空\n"
         # r = r + "标签:" + self.main_knowledge_point.content.replace("【知识点】","") + "\n"
