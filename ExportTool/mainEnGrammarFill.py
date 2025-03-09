@@ -363,8 +363,8 @@ def HandleFile(file_name: str):
             break
         if para:
             color = get_paragraph_shading(para)
-            if color and is_main_from_startwith:
-                print("有背景颜色，又有题干开始标识 。 内容为:%s" % line )
+            # if color and is_main_from_startwith:
+            #     print("有背景颜色，又有题干开始标识 。 内容为:%s" % line )
             if color is None and last_color:
                 cur_state = State.main
                 is_new_item = True
@@ -426,9 +426,9 @@ def checkState(s: str):
         return is_new_item,False
     if not is_valid:
         return is_new_item,False
-    if s.startswith("#") or s.startswith("Directions") or s.startswith("语法填空") or s.startswith("阅读下面短文") or s.startswith("DIRECTIONS"):
-        cur_state = State.main
-        return is_new_item,True
+    # if s.startswith("#") or s.startswith("Directions") or s.startswith("语法填空") or s.startswith("阅读下面短文") or s.startswith("DIRECTIONS"):
+    #     cur_state = State.main
+    #     return is_new_item,True
     # 只有题干或选项，才有可能是题目
     if cur_state.value <= State.opt.value and is_option(s):  # 选项
         cur_state = State.opt
