@@ -195,7 +195,7 @@ class MainItem(BaseItem):
 
 
     def getResult(self,id:int):
-        r:str = "%d.\n" % id
+        r:str = "%d.题目%d\n" % (id,id)
         if self.difficulty:
             r = r + self.difficulty.content
         if self.origin:

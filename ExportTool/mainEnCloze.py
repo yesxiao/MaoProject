@@ -9,7 +9,7 @@ from enum import Enum
 from docx.shared import Pt, RGBColor
 
 from Tools import getNumPairs, getImportPath, split_options, getContentBeforeNumAndPot, get_first_number_before_dot, \
-    get_max_number, is_start_with_num_and_point
+    get_max_number, is_start_with_num_and_point, get_paragraph_shading
 
 
 class State(Enum):
@@ -110,6 +110,7 @@ class AnalysisItem(BaseItem):
             arr = self.content.split("【点睛】")
             if len(arr) > 1:
                 self.dian_jing = "【点睛】" + arr[1]
+                self.dian_jing = self.dian_jing.replace("\n\n","\n")
             self.content = arr[0]
 
         max_id: int = get_max_number(self.content)
@@ -121,7 +122,7 @@ class AnalysisItem(BaseItem):
             self.anlyItems.append( str(first_id + i) + ":" + anly)
 
     def getResult(self):
-        return "\n".join(self.anlyItems) + "\n" + self.dian_jing
+        return "".join(self.anlyItems) + self.dian_jing
 
 
 class MainItem(BaseItem):
@@ -154,6 +155,7 @@ class MainItem(BaseItem):
             self.answer.update()
         if self.analysis :
             self.analysis.update()
+        self.content = self.content.replace("A、","A和").replace("B、","B和").replace("C、","C和")
         if not self.content.__contains__("] ( ) ") and not self.content.__contains__("__"):
             print("题目里居然没有任何选项: %s" % self.content)
 
@@ -169,18 +171,21 @@ class MainItem(BaseItem):
     def getResult(self,id:int):
         r:str = "%d.\n" % id
         if self.difficulty:
-            r = r + "\n" + self.difficulty.content
+            r = r + self.difficulty.content
         if self.origin:
-            r = r + "\n" + self.origin.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">")
+            r = r + self.origin.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">")
         if self.main_knowledge_point:
-            r = r + "\n" + self.main_knowledge_point.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">") + "\n"
+            r = r + "\n" + self.main_knowledge_point.content.replace("（","<").replace("）",">").replace("(","<").replace(")",">")
         self.content = self.content.replace("#","")
-        r = r + self.content
+        self.content = self.content.lstrip()
+        r = r.rstrip()
+        r = r + "\n" + self.content
         score:int = 2
         for o in self.options:
-            r = r + o.getResult(score) + "\n"
+            r = r + o.getResult(score)
         if self.answer :
-            r = r + "答案:" + self.answer.getResult() + "\n"
+            r = r.rstrip()
+            r = r + "\n答案:" + self.answer.getResult() + "\n"
         r = r + "分数:" + str(score*len(self.options)) + "\n"
         r = r + "分类:完形填空\n"
         # r = r + "标签:" + self.main_knowledge_point.content.replace("【知识点】","") + "\n"
@@ -242,6 +247,8 @@ def main():
 
 def common_repalce(line:str):
     line = line.replace("【导语】","【解析】").replace("【导读】","【解析】").replace("【分析】","【解析】").replace("A.M.","AM").replace("A.D.","AD").replace("P.M.","PM")
+    line = line.replace("【详解】","【解析】")
+    line = line.replace("$" ,"$ ")
     return line
 
 def formatUnderline(d:docx.text.paragraph.Paragraph):
@@ -284,6 +291,7 @@ def HandleFile(file_name: str):
     is_last_start:bool = False
     first_num = None
     is_last_anly = False
+    last_color = None
     for d in doc.paragraphs:
         formatUnderline(d)
         line = d.text.replace("．", ".")
@@ -292,18 +300,29 @@ def HandleFile(file_name: str):
         if not line.startswith("【"):
             line = "\n        "+line
         line = common_repalce(line)
+        color = get_paragraph_shading(d)
+        is_new_color = False
+        if color is None and last_color:
+            is_new_color = True
+        last_color = color
         is_new_item = checkState(line)
         if cur_state == State.finish:
             break
         if cur_state == State.invaid:
             if not is_last_start:
                 is_last_start = line.__contains__("//题目开始")
+                if is_last_start:
+                    cur_state = State.main
+                    cur_main_item = None
                 continue
             else:
                 cur_state = State.main
         #如果没有识别出主题，但是上一次
-        first_num = is_start_with_num_and_point(line)
-        if not is_new_item and ( cur_state == State.anly or cur_state == State.dian_jing ) and not first_num and is_last_anly:
+        # first_num = is_start_with_num_and_point(line)
+        # if not is_new_item and ( cur_state == State.anly or cur_state == State.dian_jing ) and not first_num and is_last_anly:
+        #     cur_state = State.main
+        #     cur_main_item = None
+        if is_new_color:
             cur_state = State.main
             cur_main_item = None
         update_state(line, is_new_item)

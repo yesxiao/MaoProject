@@ -227,9 +227,9 @@ def replaceCommon(line:str):
     line = line.replace("【示例一】", "[示例一]").replace("【示例二】", "[示例二]").replace("【示例三】", "[示例三]")
 
     line = line.replace("【链接材料】", "[链接材料]")
-    line = line.replace("【分析】", "【解析】").replace("【详解】", "【解析】")
+    line = line.replace("【分析】", "【解析】").replace("【详解】", "【解析】").replace( "【导语】","【解析】")
+    line = line.replace("【整体分析】" ,"【解析】")
     line = line.replace("【甲】","[甲]").replace("【乙】","[乙]").replace("【丙】","[丙]").replace("【丁】","[丁]")
-
     for i in range(20):
         line = line.replace("【小题" + str(i+1)+"】",str(i+1)+".")
     return line
@@ -427,11 +427,17 @@ def writeAns(fileName):
 
     global category
     global type
-    doc = Document()  # 创建新文档
-    para1 = doc.add_paragraph()
+
     content:str = ""
     comNum = 0
     allQue:int = 0
+    contents:[] = []
+    split_num:int = 3
+    file_per: int = split_num
+    if len(comprehensionArr) >= split_num:
+        file_per = int(len(comprehensionArr) / split_num)
+    else:
+        split_num = 1
     for c in comprehensionArr:
         comNum += 1
         com:ComprehensionData = c
@@ -447,9 +453,10 @@ def writeAns(fileName):
         com.main = com.main.replace("("," [").replace("（"," [").replace(")","] ").replace("）","] ")
         if bool(re.match(r'^\d+\.', com.main.strip())):
             print("题干中，不能以 \"数字+.\" 开头，如\"1.\" ，请将\".\"改成其他字符 , 题干 =  %s " % com.main )
-        content += "[理解题开始]\n"
+        content = content.rstrip()
+        content += "\n[理解题开始]\n"
         com.main = com.main + "\n分类:"+type
-        content += ( com.main + " (" + str(len(com.ques)) + "题)\n\n\n" )
+        content += ( com.main.lstrip() + " (" + str(len(com.ques)) + "题)\n\n\n" )
         num = 0
         for q in com.ques:
             que:QuestionData = q
@@ -464,7 +471,8 @@ def writeAns(fileName):
                 if len(op.strip()) <= 2:
                     print("选项为空，请注意检查 id = %d,选项:%s" % (que.id,op) )
                 content += op + "\n"
-            content += "答案:" + que.ans + "\n"
+            content += "答案:" + que.ans
+            content = content.rstrip() + "\n"
             content += "分数:5\n"
             que.analysis = que.analysis.replace("【","\n【")
             num += 1
@@ -472,26 +480,45 @@ def writeAns(fileName):
                 content += "解析:" + que.analysis + "\n\n"
             else:
                 content += "解析:" + que.analysis + "\n\n\n"
-        if comNum == len(comprehensionArr):
-            content += "[理解题结束]"
-        else:
-            content += "[理解题结束]\n"
-
-
-    run_2 = para1.add_run(content)  # 以add_run的方式追加内容，方便后续格式调整
-    run_2.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
-    # 设置中文字体
-    # 需导入 qn 模块
-    from docx.oxml.ns import qn
-    # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
-    run_2.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
-    # 设置字体大小
-    run_2.font.size = Pt(14)
-    #run.font.size = Pt(10.5)
-    if os.path.exists(fileName):
-        os.remove(fileName)
-    doc.save(fileName)  # 文档保存
-    print("保存完成,题干数量%d,子题目数量%d" % (len(comprehensionArr), allQue) )
+        content = content.rstrip()
+        content += "\n[理解题结束]"
+        if len(contents) < split_num - 1 and split_num > 1 and comNum == file_per :
+            cs = {}
+            cs["content"] = content
+            cs["num"] = comNum
+            contents.append(cs)
+            content = ""
+            comNum = 0
+    if len(contents) < split_num :
+        cs = {}
+        cs["content"] = content
+        cs["num"] = comNum
+        contents.append(cs)
+    file_name:int = 0
+    for cs in contents:
+        file_name += 1
+        c = cs["content"]
+        c = c.rstrip() + "\r\r"
+        num = cs["num"]
+        c = c.lstrip()
+        doc = Document()  # 创建新文档
+        para1 = doc.add_paragraph()
+        run_2 = para1.add_run(c)  # 以add_run的方式追加内容，方便后续格式调整
+        run_2.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
+        # 设置中文字体
+        # 需导入 qn 模块
+        from docx.oxml.ns import qn
+        # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
+        run_2.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
+        # 设置字体大小
+        run_2.font.size = Pt(14)
+        #run.font.size = Pt(10.5)
+        arr:[] = fileName.split(".")
+        f_file_name:str = arr[0] + str(file_name) + "." + arr[1]
+        if os.path.exists(f_file_name):
+            os.remove(f_file_name)
+        doc.save(f_file_name)  # 文档保存
+        print("保存完成,题干数量%d,子题目数量%d" % (num, allQue) )
 
 
 

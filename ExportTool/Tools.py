@@ -210,7 +210,7 @@ def get_max_number( text: str) :
                  #   print("sss")
             #return last_num
         #如果有包含1.2类似的数字，则直接替换
-        if text[idx + len(num_str)].isdigit():
+        if text[idx + len(num_str)].isdigit() and not is_circle_num(text[idx + len(num_str)]):
             # 点先替换成空格
             str_list = list(text)
             str_list.insert(idx + (len)(num_str) - 1,' ')
@@ -219,6 +219,13 @@ def get_max_number( text: str) :
         else:
             last_num = cur_num
             cur_num = cur_num + 1
+
+def is_circle_num(s:str):
+    a = ["①","②","③"]
+    for a_s in a :
+        if s.find(a_s) != -1:
+            return True
+    return False
 
 def is_start_with_num_and_point(s:str):
     s = s.strip()
