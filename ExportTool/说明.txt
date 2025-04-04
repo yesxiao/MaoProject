@@ -12,10 +12,10 @@ mainReading.py  语文阅读题
 
 mainEnCloze.py  英语完形填空 （新）
 
-mainEncloze1.py  选单词填空 (非选择，纯填空，如小猫钓鱼)
+mainEncloze1.py  选单词填空 (非选择，纯填空，如小猫钓鱼) [一题1分]
 
-mainEnGrammarFill.py 高一二三语法填空(语法填空)
+mainEnGrammarFill.py 高一二三语法填空(语法填空)  [一题1分]
 
-Fill4outOf6.py 填空题 6选4
+Fill4outOf6.py 填空题 6选4  [一题1分]
 
 输入目录直接在  说明.txt中修改

@@ -180,7 +180,7 @@ class ComprehensionData:
         for i in range(to_id - from_id + 1):
             tmp_id: int = from_id + i
             r: str = getNumPairs(tmp_id, self.answer, None, to_id)
-            answer_arr.append(r.strip())
+            answer_arr.append(r.strip()+"=>1")
         self.answer = ";".join(answer_arr)
 
 
