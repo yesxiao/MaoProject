@@ -6,16 +6,16 @@ mainEnPassage.py 完形填空 （旧）
 
 mainHistory.py  历史
 
-mainComprehension.py (英语地理)理解题
+mainComprehension.py (英语地理)阅读理解题【英语高二】
 
-mainReading.py  语文阅读题
+mainReading.py       语文阅读题
 
-mainEnCloze.py  英语完形填空 （新）
+mainEnCloze.py       英语完形填空 （新）（例如初中完型填空七年级适中困难较难）
 
-mainEncloze1.py  选单词填空 (非选择，纯填空，如小猫钓鱼) [一题1分]
+mainEncloze1.py      选单词填空 (非选择，纯填空，如小猫钓鱼) [一题1分]    【全国题库工具重写】
 
 mainEnGrammarFill.py 高一二三语法填空(语法填空)  [一题1分]
 
-Fill4outOf6.py 填空题 6选4  [一题1分]
+Fill4outOf6.py       填空题 6选4  [一题1分] 【有需要优化的】
 
 输入目录直接在  说明.txt中修改

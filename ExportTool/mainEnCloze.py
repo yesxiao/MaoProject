@@ -52,7 +52,8 @@ class OptionItem(BaseItem):
         self.opt_arr = split_options(self.content)
 
     def getResult(self,score:int ):
-        r:str = "\n%d." % self.opt_id
+        # r:str = "\n%d." % self.opt_id
+        r: str = ""
         isFirst:bool = True
         for a in self.opt_arr:
             r = r + "\n" + str(a).strip()
@@ -114,6 +115,9 @@ class AnalysisItem(BaseItem):
             self.content = arr[0]
 
         max_id: int = get_max_number(self.content)
+        if max_id is None:
+            print("解析序号最大值错误:first_id=%d,content=%s" % (first_id ,self.content))
+            return
         for i in range(max_id - first_id + 1):
             anly = getNumPairs(first_id + i, self.content)
             if anly is None or anly == "":
@@ -194,7 +198,13 @@ class MainItem(BaseItem):
         else:
             r = r +  "解析:" + self.analysis.getResult() + "\n\n\n"
             if len(self.options) != len(self.analysis.anlyItems):
-                print("选项和解析数量不匹配, id = %d , 选项:%d个 , 解析:%d ,  题干:%s" % (id, len(self.options) ,len(self.analysis.anlyItems), self.content))
+                if len(self.analysis.anlyItems) > 0 :
+                    all_anly = "\n".join(self.analysis.anlyItems)
+                    print("选项和解析数量不匹配, id = %d , 选项:%d个 , 解析:%d ,  题干:%s \n======= 当前解析的内容======\n %s" % (
+                    id, len(self.options), len(self.analysis.anlyItems), self.content, all_anly))
+                else:
+                    print("选项和解析数量不匹配, id = %d , 选项:%d个 , 解析:%d ,  题干:%s" % (id, len(self.options) ,len(self.analysis.anlyItems), self.content ))
+
 
         return r
 

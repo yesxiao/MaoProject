@@ -13,9 +13,10 @@ from enum import Enum
 
 from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
+from docx.text.paragraph import Paragraph
 
 from Tools import getNumPairs, getImportPath, split_options, get_paragraph_shading, getContentBeforeNumAndPot, \
-    get_max_number, get_first_number_before_dot
+    get_max_number, get_first_number_before_dot, copy_paragraph
 
 
 class State(Enum):
@@ -26,7 +27,9 @@ class State(Enum):
     answer = 4 # 答案\分类\分数\解析
     analyse = 5
     come_from = 6
-    finish = 7
+    diffcult = 7
+    point = 8  #知识点
+    finish = 9
 
 class QuestionData:
     id = 0
@@ -98,7 +101,7 @@ class QuestionData:
         paragraphs = []
         current_paragraph = []
         self.qus = self.qus.replace("("," [").replace("（"," [").replace(")","] ").replace("）","] ")
-        self.analysis = self.analysis.replace("【分析】","【解析】").replace("【详解】","【解析】")
+        self.analysis = self.analysis.replace("【分析】","【解析】").replace("【详解】","【解析】").replace("【导语】","【解析】").replace("【导读】","【解析】")
         pattern = r'【解析】(.*?)(?=【)'
         if not self.isSignle and not self.analysis.__contains__("【点睛】"):
             self.analysis = self.analysis + "【"
@@ -146,23 +149,35 @@ class ComprehensionData:
         self.id = queId
         self.ques = []
         self.main = ""
+        self.main_contents = []
         self.answer = ""
         self.analyse = ""
         self.come = ""
+        self.point = ""
+        self.difficult = ""
 
 
-    def addMainContent(self,mainContent:str):
+    def addMainContent(self,mainContent:str,d:Paragraph):
         mainContent = mainContent.replace("、",",")
         m = re.match( r'^#\d+\.',mainContent)
         if m :
             print("题干的内容不能以数字+点开头 :" + mainContent)
         self.main = self.main + mainContent
+        self.main_contents.append(d)
 
     def add_answer(self,s:str):
         self.answer = self.answer + s
 
     def add_analyse(self,s:str):
+        #s = s.strip()
+        self.analyse = self.analyse.strip()
         self.analyse = self.analyse + s
+
+    def add_point(self,s:str):
+        self.point = s
+
+    def add_difficult(self,s:str):
+        self.difficult = s
 
     def add_come_from(self,s:str):
         self.come = self.come + s
@@ -173,7 +188,6 @@ class ComprehensionData:
         last = False
         for a in arr:
             self.main = self.main.replace( " " + a + ".", "【" + a + "】")
-
         from_id: int = get_first_number_before_dot(self.answer)
         to_id: int = get_max_number(self.answer)
         answer_arr = []
@@ -182,6 +196,39 @@ class ComprehensionData:
             r: str = getNumPairs(tmp_id, self.answer, None, to_id)
             answer_arr.append(r.strip()+"=>1")
         self.answer = ";".join(answer_arr)
+        arr = ["A.", "B.", "C.", "D.", "E.", "F.", "G.", "H."]
+        for p in self.main_contents:
+            if p.runs and len(p.runs):
+                for r in p.runs:
+                    # if r.underline :
+                    #     r.font.underline = False
+                    #     r.text = "  ___________  "
+                    r.text = r.text.replace("（", "【").replace("(", "【").replace("）", "】").replace(")", "】")
+                    r.text = r.text.replace("“","“  ").replace("”","  ”")
+            t:str = p.text
+            t = t.replace("．",".")
+            t = t.replace("（", "【").replace("(", "【").replace("）", "】").replace(")", "】")
+            t = t.strip()
+            two_word:str = t[0:2]
+            if arr.__contains__(two_word):
+                if two_word == "A." :
+                    t = "===============================================\n" + t
+                two_word_new = "【" + two_word[0] + "】."
+                t = t.replace(two_word,two_word_new)
+                if two_word == "F.":
+                    t = t + "\n==============================================="
+                p.text = t
+
+        from_analyse_id: int = get_first_number_before_dot(self.analyse)
+        to_analyse_id: int = get_max_number(self.analyse)
+        if to_analyse_id and from_analyse_id :
+            for i in range(to_analyse_id - from_analyse_id + 1):
+                tmp_id: int = from_analyse_id + i
+                no_str: str = "%d." % tmp_id
+                no_new: str = "【%d】" % tmp_id
+                if self.analyse.__contains__(no_str):
+                    self.analyse = self.analyse.replace(no_str, "\n" + no_new)
+
 
 
 
@@ -260,7 +307,7 @@ def HandleFile(fileName:str):
             break
         if curState == State.invaid:
             continue
-        updateState(str)
+        updateState(str,d)
 
     ## 写答案
     fileName = fileName.split(".")[0] + "[上传].docx"
@@ -289,18 +336,24 @@ def checkContent(s:str):
         if ( curState == State.que or curState == State.opt ) and isOption(s):  # 选项
             curState = State.opt
             return
-        if s.find("【答案】") != -1 or s.find("【知识点】") != -1 or s.find("【解析】") != -1 :
+        if s.find("【答案】") != -1  :
             curState = State.answer
             return
-        if s.find("【导语】") != -1 or s.find("【解析】") != -1:
+        if s.find("【知识点】") != -1:
+            curState = State.point
+            return
+        if s.find("【导语】") != -1 or s.find("【解析】") != -1 or s.find("【分析】") != -1 or s.find("【导读】") != -1:
             curState = State.analyse
             return
         if s.find("【来源】") != -1:
             curState = State.come_from
             return
+        if s.find("【难度】") != -1:
+            curState = State.diffcult
+            return
 
 
-def updateState(s:str):
+def updateState(s:str,d:Paragraph ):
     global curState
     global isValid
     global comprehensionArr
@@ -310,18 +363,22 @@ def updateState(s:str):
         return;
     match(curState):
         case State.main:
-            pattern = r'^#\d+\.'
-            m = re.match(pattern, s.strip())
+            # pattern = r'^#\d+\.'
+            # m = re.match(pattern, s.strip())
             if curComprehensItem is None:
                 curComprehensItem = ComprehensionData()
                 comprehensionArr.append(curComprehensItem)
-            curComprehensItem.addMainContent(s)
+            curComprehensItem.addMainContent(s,d)
         case State.answer:
             curComprehensItem.add_answer(s)
         case State.come_from:
             curComprehensItem.add_come_from(s)
         case State.analyse:
             curComprehensItem.add_analyse(s)
+        case State.diffcult:
+            curComprehensItem.add_difficult(s)
+        case State.point:
+            curComprehensItem.add_point(s)
 
 
 
@@ -378,7 +435,7 @@ def writeAns(fileName):
     global category
     global type
     doc = Document()  # 创建新文档
-    para1 = doc.add_paragraph()
+    # para1 = doc.add_paragraph()
     content:str = ""
     comNum = 0
     allQue:int = 0
@@ -386,29 +443,58 @@ def writeAns(fileName):
         comNum += 1
         com:ComprehensionData = c
         com.format_all()
-        com.main = com.main + "\n分类:"+type
-        content += com.main + "\n"
+        for dp in com.main_contents:
+            #doc.add_paragraph(dp)
+            copy_paragraph(dp,doc.add_paragraph())
+        para1 = doc.add_paragraph()
+        content = "\n分类:"+type+"\n"
+        #para1.add_run("\n分类:"+type+"\n")
+        #com.main = com.main + "\n分类:"+type
+        #content += com.main + "\n"
+        content = ""
         content += ("答案:" + com.answer + "\n")
         content += ("解析:" + com.come + "\n")
+        if com.point != "" :
+            content += com.point + "\n"
+        if com.difficult != "":
+            content += com.difficult + "\n"
+
         content += com.analyse + "\n\n\n\n"
+        tmp_run = para1.add_run(content)
+        tmp_run.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
+        # 设置中文字体
+        # 需导入 qn 模块
+        from docx.oxml.ns import qn
+        # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
+        tmp_run.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
+        # 设置字体大小
+        tmp_run.font.size = Pt(14)
 
 
-
-    run_2 = para1.add_run(content)  # 以add_run的方式追加内容，方便后续格式调整
-    run_2.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
-    # 设置中文字体
-    # 需导入 qn 模块
-    from docx.oxml.ns import qn
-    # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
-    run_2.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
-    # 设置字体大小
-    run_2.font.size = Pt(14)
-    #run.font.size = Pt(10.5)
+    # run_2 = para1.add_run(content)  # 以add_run的方式追加内容，方便后续格式调整
+    # run_2.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
+    # # 设置中文字体
+    # # 需导入 qn 模块
+    # from docx.oxml.ns import qn
+    # # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
+    # run_2.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
+    # # 设置字体大小
+    # run_2.font.size = Pt(14)
     if os.path.exists(fileName):
         os.remove(fileName)
     doc.save(fileName)  # 文档保存
     print("保存完成,题干数量%d,子题目数量%d" % (len(comprehensionArr), allQue) )
 
+def add_run( para:Paragraph , old_run):
+    new_run = para.add_run(old_run.text)
+
+    # 复制字体格式（关键属性）
+    new_run.font.name = old_run.font.name
+    new_run.font.size = old_run.font.size
+    new_run.font.bold = old_run.font.bold
+    new_run.font.italic = old_run.font.italic
+    new_run.font.underline = old_run.font.underline
+    new_run.font.color.rgb = old_run.font.color.rgb
 
 
 if __name__ == '__main__':

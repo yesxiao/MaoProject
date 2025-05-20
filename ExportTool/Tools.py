@@ -31,6 +31,89 @@ def get_paragraph_shading(paragraph):
             return val
     return None
 
+
+# from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+
+# 复制段落
+def copy_paragraph(source_para ,new_para):
+    # 复制段落格式
+    _copy_paragraph_format(source_para, new_para)
+
+    # 复制所有Run及其格式
+    for source_run in source_para.runs:
+        new_run = new_para.add_run(source_run.text)
+        _copy_run_format(source_run, new_run)
+
+
+def _copy_paragraph_format(source, target):
+    """深度复制段落级格式"""
+    # 对齐方式
+    target.paragraph_format.alignment = source.paragraph_format.alignment
+
+    # 缩进设置
+    target.paragraph_format.left_indent = source.paragraph_format.left_indent
+    target.paragraph_format.right_indent = source.paragraph_format.right_indent
+    target.paragraph_format.first_line_indent = source.paragraph_format.first_line_indent
+
+    # 间距设置
+    target.paragraph_format.space_before = source.paragraph_format.space_before
+    target.paragraph_format.space_after = source.paragraph_format.space_after
+    target.paragraph_format.line_spacing = source.paragraph_format.line_spacing
+
+    # 分页控制
+    target.paragraph_format.keep_together = source.paragraph_format.keep_together
+    target.paragraph_format.keep_with_next = source.paragraph_format.keep_with_next
+    target.paragraph_format.page_break_before = source.paragraph_format.page_break_before
+
+    # 样式设置（谨慎使用）
+    if source.style:
+        try:
+            target.style = source.style
+        except KeyError:
+            pass  # 目标文档无此样式时跳过
+
+
+def _copy_run_format(source, target):
+    """深度复制Run级格式"""
+    # 字体基础
+    target.font.name = 'Times New Roman'
+    #target.font.size = source.font.size
+
+    # 设置中文字体
+    # 需导入 qn 模块
+    from docx.oxml.ns import qn
+    # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
+    target.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
+    # 设置字体大小
+    target.font.size = Pt(14)
+
+    # 字体样式
+    target.font.bold = source.font.bold
+    target.font.italic = source.font.italic
+    target.font.underline = source.font.underline
+    target.font.strike = source.font.strike
+
+    # 颜色设置
+    if source.font.color.rgb:
+        target.font.color.rgb = source.font.color.rgb
+    if source.font.highlight_color:
+        target.font.highlight_color = source.font.highlight_color
+
+    # 高级格式
+    target.font.subscript = source.font.subscript
+    target.font.superscript = source.font.superscript
+
+    # 字间距
+    #if source.font.kern:
+    #    target.font.kern = source.font.kern
+
+    # 字符缩放
+    # if source.font.scaling:
+    #     target.font.scaling = source.font.scaling
+
+
 def split_options(text):
     text = text.replace("．", ".")
     arr = ["A", "B", "C", "D", "E", "F"]
@@ -260,11 +343,13 @@ def iter_block_items(parent):
 
 def read_table(table):
     arr = [[cell.text for cell in row.cells] for row in table.rows]
-    content:str = ""
+    content = []
     for a in arr:
         for a1 in a :
-            content = content + a1
-    return content
+            content.append(a1)
+            #content = content + a1
+    c = ",".join(content)
+    return c
 
 
 if __name__ == '__main__':

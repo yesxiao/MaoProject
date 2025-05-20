@@ -13,8 +13,9 @@ from enum import Enum
 
 from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
+from docx.text.paragraph import Paragraph
 
-from Tools import getNumPairs, getImportPath, split_options, get_paragraph_shading
+from Tools import getNumPairs, getImportPath, split_options, get_paragraph_shading, iter_block_items, read_table
 
 
 class State(Enum):
@@ -95,7 +96,7 @@ class QuestionData:
         paragraphs = []
         current_paragraph = []
         self.qus = self.qus.replace("("," [").replace("（"," [").replace(")","] ").replace("）","] ")
-        self.analysis = self.analysis.replace("【分析】","【解析】").replace("【详解】","【解析】")
+        self.analysis = self.analysis.replace("【分析】","【解析】").replace("【详解】","【解析】").replace("【导语】","【解析】")
         pattern = r'【解析】(.*?)(?=【)'
         if not self.isSignle and not self.analysis.__contains__("【点睛】"):
             self.analysis = self.analysis + "【"
@@ -213,17 +214,29 @@ def HandleFile(fileName:str):
     optionROle = re.compile(r"^[A-Z]\s*\.\s*")
     color:any = None
     last_color:any = None
-    for d in doc.paragraphs:
-        formatUnderline(d)
-        str = d.text.replace("．", ".")
+
+    # -----
+    for block in iter_block_items(doc):
+        str: str = ""
+        # 是否为固定选项部分
+        is_fix_opt: bool = False
+        is_paragraph = False
+        if isinstance(block, Paragraph):
+            formatUnderline(block)
+            str = block.text
+            is_paragraph = True
+        elif isinstance(block, docx.table.Table):
+            is_fix_opt = True
+            str = read_table(block)
         if str == '':
             continue
         tmpValid = isValid
+        str = str.replace("．",".")
         checkContent(str)
         if tmpValid == False and isValid :
             curState = State.main
             continue
-        color = get_paragraph_shading(d)
+        color = get_paragraph_shading(block)
         if color is None and last_color:
             curState = State.main
             curComprehensItem = None
@@ -392,7 +405,7 @@ def writeAns(fileName):
         if bool(re.match(r'^\d+\.', com.main.strip())):
             print("题干中，不能以 \"数字+.\" 开头，如\"1.\" ，请将\".\"改成其他字符 , 题干 =  %s " % com.main )
         content += "[理解题开始]\n"
-        com.main = com.main + "\n分类:"+type
+        com.main = com.main.strip() + "\n分类:"+type
         content += ( com.main + " (" + str(len(com.ques)) + "题)\n\n\n" )
         num = 0
         for q in com.ques:
