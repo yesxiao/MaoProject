@@ -102,6 +102,7 @@ class AnswerItem(BaseItem):
         arr:[] = self._answer_str.split(";")
         arr_str:[] = []
         has_error:bool = False
+        is_choose:bool = True
         for i in range(len(arr)):
             letter = chr(64+i+1)
             # arr_str.append(letter+"."+arr[i]+"=>"+str(score))
@@ -110,8 +111,9 @@ class AnswerItem(BaseItem):
                 has_error = True
         self._answer_str = ";".join(arr_str)
         if has_error :
-            print("答案不是选择题，请确认:" + self._answer_str)
-        return self._answer_str,len(arr)
+            is_choose = False
+            # print("答案不是选择题，请确认:" + self._answer_str)
+        return self._answer_str,len(arr),is_choose
 
 
 
@@ -224,8 +226,9 @@ class MainItem(BaseItem):
         for o in self.options:
             r = r + o.getResult(score) + "\n"
         option_len:int = 0
+        is_choose:bool = True
         if self.answer :
-            a,option_len = self.answer.getResult(score)
+            a,option_len,is_choose = self.answer.getResult(score)
             r = r + "\n答案:"+ a + "\n"
         r = r + "分数:" + str(score*option_len) + "\n"
         r = r + "分类:完形填空\n"
@@ -237,7 +240,7 @@ class MainItem(BaseItem):
             if self.answer.get_number() != len(self.analysis.anlyItems):
                 print("选项和解析数量不匹配, id = %d , 选项:%d个 , 解析:%d ,  题干:%s" % (id, len(self.options) ,len(self.analysis.anlyItems), self.content))
 
-        return r
+        return r,is_choose
 
     def add_option(self, opt: OptionItem):
         self.options.append(opt)
@@ -593,6 +596,45 @@ def getDoc(filename):
     d = docx.Document(filename)
     return d
 
+def replace_fill_answer(content:str):
+    pass
+    return
+    arr = content.split("----------------------------------------------")
+    if len(arr) < 2 :
+        print("没有选项:" + content )
+        return
+    options = arr[1]
+    options = options.strip().replace("\n","")
+    options_arr:[] = None
+    if options.__contains__(","):
+        options_arr = options.split(",")
+    elif options.__contains__(";"):
+        options_arr = options.split(";")
+    else:
+        return
+    for i in range(len(options_arr)):
+        options_arr[i] = options_arr[i].strip()
+    answer_start_idx:int = content.find("答案:")
+    answer_start_end:int = content.find( "分数:")
+    answer:str = content[answer_start_idx+3:answer_start_end]
+    answer = answer.strip().replace("=>1","")
+    answer_arr = answer.split(";")
+    for i in range(len(answer_arr)):
+        a:str = answer_arr[i]
+        a = a.strip()
+        idx: int = -1
+        if options_arr.__contains__(a):
+            idx = options_arr.index(a)
+        if idx == -1 :
+            print("严重错误:无法从%s中找到选项%s" % ( options , a ) )
+            continue
+        a = str(chr(idx + 64 + 1)) + "=>1"
+        answer_arr[i] = a
+    for i in range(len(options_arr)):
+        options_arr[i] = str(chr(i + 64 + 1)) + "." + options_arr[i]
+
+    # letter_num: str = str(chr(i + 64 + 1))
+    # print("options:" + options + ",answer:" + answer)
 
 def writeAns(fileName):
     global category
@@ -602,18 +644,27 @@ def writeAns(fileName):
     doc = Document()  # 创建新文档
     para1 = doc.add_paragraph()
     content: str = ""
+    fill_content:str = "" #填空题
     last_que_id:int = 0
     allQue: int = 0
     main_id:int = 1
+    num_of_choose:int = 0
+    num_of_fill:int = 0
     for main_item in mainItems:
-        r = main_item.getResult(main_id)
-        content = content + r + "\n\n"
-        main_id = main_id + 1
-        allQue = allQue + len(main_item.options)
-        for o in main_item.options:
-            if last_que_id + 1 != o.opt_id:
-                print("子题序号不连续: 上一题号:%d,当前题号:%d，如果题号是连续的，请确认是不是有类似【点睛】的内容无法识别结束" % (last_que_id,o.opt_id) )
-            last_que_id = o.opt_id
+        r,is_choose = main_item.getResult(main_id)
+        if is_choose:
+            content = content + r + "\n\n"
+            main_id = main_id + 1
+            allQue = allQue + len(main_item.options)
+            num_of_choose = num_of_choose + 1
+            for o in main_item.options:
+                if last_que_id + 1 != o.opt_id:
+                    print("子题序号不连续: 上一题号:%d,当前题号:%d，如果题号是连续的，请确认是不是有类似【点睛】的内容无法识别结束" % (last_que_id,o.opt_id) )
+                last_que_id = o.opt_id
+        else:
+            replace_fill_answer(r)
+            fill_content = fill_content + r + "\n\n"
+            num_of_fill = num_of_fill + 1
 
     run_2 = para1.add_run(content)  # 以add_run的方式追加内容，方便后续格式调整
     run_2.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
@@ -627,7 +678,26 @@ def writeAns(fileName):
     if os.path.exists(fileName):
         os.remove(fileName)
     doc.save(fileName)  # 文档保存
-    print("保存完成,题干数量%d" % (len(mainItems)))
+    print("保存选择题完成,一共%d" % num_of_choose)
+
+    if fill_content != None and fill_content != "":
+        doc = Document()  # 创建新文档
+        para1 = doc.add_paragraph()
+        run_2 = para1.add_run(fill_content)  # 以add_run的方式追加内容，方便后续格式调整
+        run_2.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
+        # 设置中文字体
+        # 需导入 qn 模块
+        from docx.oxml.ns import qn
+        # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
+        run_2.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
+        # 设置字体大小
+        run_2.font.size = Pt(14)
+        file_name_arr = fileName.split(".")
+        fileName = file_name_arr[0] + "(填空题)." + file_name_arr[1]
+        if os.path.exists(fileName):
+            os.remove(fileName)
+        doc.save(fileName)  # 文档保存
+        print("保存填空题完成,一共%d" % num_of_fill )
 
 
 if __name__ == '__main__':

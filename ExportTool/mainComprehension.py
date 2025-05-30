@@ -15,7 +15,8 @@ from docx.opc.oxml import qn
 from docx.shared import Pt, RGBColor
 from docx.text.paragraph import Paragraph
 
-from Tools import getNumPairs, getImportPath, split_options, get_paragraph_shading, iter_block_items, read_table
+from Tools import getNumPairs, getImportPath, split_options, get_paragraph_shading, iter_block_items, read_table, \
+    add_underlines_runs_by_arr
 
 
 class State(Enum):
@@ -179,12 +180,13 @@ def main():
     else:
         HandleFile(fileName)
 
-def formatUnderline(d:docx.text.paragraph.Paragraph):
-    return
-    #for item in d.runs :
-#    if item.underline :
-            # item.text = item.text.replace(" ","_")
-            # item.text = "____________"
+def formatUnderline(d:docx.text.paragraph.Paragraph,arr:[]):
+    for item in d.runs :
+        if item.underline :
+            s:str = item.text.replace("．", ".")
+            item.text = "^" + s + "^"
+            arr.append(item.text)
+
 
 
 def HandleFile(fileName:str):
@@ -214,7 +216,7 @@ def HandleFile(fileName:str):
     optionROle = re.compile(r"^[A-Z]\s*\.\s*")
     color:any = None
     last_color:any = None
-
+    under_line_arr = []
     # -----
     for block in iter_block_items(doc):
         str: str = ""
@@ -222,7 +224,7 @@ def HandleFile(fileName:str):
         is_fix_opt: bool = False
         is_paragraph = False
         if isinstance(block, Paragraph):
-            formatUnderline(block)
+            formatUnderline(block,under_line_arr)
             str = block.text
             is_paragraph = True
         elif isinstance(block, docx.table.Table):
@@ -251,7 +253,7 @@ def HandleFile(fileName:str):
 
     ## 写答案
     fileName = fileName.split(".")[0] + "[上传].docx"
-    writeAns(fileName)
+    writeAns(fileName,under_line_arr)
     print("----------------结束处理文件----------------------------\n")
     return True
 
@@ -377,7 +379,7 @@ def getDoc(filename):
     d = docx.Document(filename)
     return d
 
-def writeAns(fileName):
+def writeAns(fileName,under_line_arr:[]):
     '''python-docx实现操作word文档基础命令(包含插入各级标题)
     :param fileName:文件保存路径
     :return: None
@@ -433,17 +435,18 @@ def writeAns(fileName):
         else:
             content += "[理解题结束]\n"
 
-
-    run_2 = para1.add_run(content)  # 以add_run的方式追加内容，方便后续格式调整
-    run_2.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
-    # 设置中文字体
-    # 需导入 qn 模块
-    from docx.oxml.ns import qn
-    # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
-    run_2.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
-    # 设置字体大小
-    run_2.font.size = Pt(14)
-    #run.font.size = Pt(10.5)
+    if len(under_line_arr) > 0 :
+        add_underlines_runs_by_arr(para1,content)
+    else:
+        run_2 = para1.add_run(content)  # 以add_run的方式追加内容，方便后续格式调整
+        run_2.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
+        # 设置中文字体
+        # 需导入 qn 模块
+        from docx.oxml.ns import qn
+        # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
+        run_2.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
+        # 设置字体大小
+        run_2.font.size = Pt(14)
     if os.path.exists(fileName):
         os.remove(fileName)
     doc.save(fileName)  # 文档保存

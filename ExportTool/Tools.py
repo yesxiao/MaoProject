@@ -351,6 +351,46 @@ def read_table(table):
     c = ",".join(content)
     return c
 
+#将指定内容，按underlines添加runs
+def add_underlines_runs_by_arr(para:Paragraph,content:str):
+    final_arr:[] = []
+    tmp_part:str = ""
+    wait_flag:int = 0 # 0- 正常  1 - 等待匹配
+    has_underline:bool = False
+    need_write:bool = False
+    content_len:int = len(content)
+    for i in range(content_len):
+        letter = content[i]
+        if letter == "^" and wait_flag == 0 :
+            wait_flag = 1
+            has_underline = False
+            need_write = True
+        elif letter == "^" and wait_flag == 1 :
+            wait_flag = 0
+            has_underline = True
+            need_write = True
+        if letter != "^" :
+            tmp_part = tmp_part + letter
+        if content_len - 1 == i :
+            need_write = True
+        if need_write:
+            r = para.add_run(tmp_part)
+            r.font.name = 'Times New Roman'
+            r.font.name = 'Times New Roman'  # 注：这个好像设置 run 中的西文字体
+            # 设置中文字体
+            # 需导入 qn 模块
+            from docx.oxml.ns import qn
+            # run_2.font.name = '楷体'  # 注：如果想要设置中文字体，需在前面加上这一句
+            r.font.element.rPr.rFonts.set(qn('w:eastAsia'), '楷体')
+            # 设置字体大小
+            r.font.size = Pt(14)
+            r.font.underline = has_underline
+            tmp_part = ""
+            need_write = False
+            has_underline = False
+
+
+
 
 if __name__ == '__main__':
     test: str = ('''51．考查名词。句意：植物性牛奶多年来越来越受欢迎，但不同牛奶和牛奶替代品的营养成分不同，品牌之间也存在分歧。分析可知，空前是介词，所以空处应填名词，根据后文“The global dairy alternatives market is 　2　to grow from $22.25 billion in 2021 to $53.97 billion in 2028”可知，牛奶市场越来越大，所以空处应选popularity意为“受欢迎”，符合句意。故选H项。r"
